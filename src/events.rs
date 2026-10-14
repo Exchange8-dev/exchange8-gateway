@@ -321,7 +321,7 @@ mod tests {
         // Routed/rejected map to the declared vocabulary 1:1.
         assert_eq!(
             order_event(OrderOp::Routed, json!({}), &id)["event_type"],
-           EV_ORDER_ROUTED
+            EV_ORDER_ROUTED
         );
         assert_eq!(
             connection_event(ConnectionOp::Disconnected, json!({}), &id)["event_type"],

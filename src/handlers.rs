@@ -323,10 +323,9 @@ pub async fn admin_ui_page(
         sentin8::shield::EvalTarget::new(scopes::CONNECTIONS_READ),
     )
     .await?;
-    admin_pages::page(&page).map(axum::Json).ok_or((
-        StatusCode::NOT_FOUND,
-        format!("no admin ui page '{page}'"),
-    ))
+    admin_pages::page(&page)
+        .map(axum::Json)
+        .ok_or((StatusCode::NOT_FOUND, format!("no admin ui page '{page}'")))
 }
 
 /// `POST /v1/admin/sessions/{id}/stop` — admin session stop (design §4.5
@@ -382,7 +381,9 @@ pub async fn stop_session(
     // Deliver the stop signal; a session not currently connected is a
     // no-op stop (the state table already carries the persisted counters).
     crate::runtime_wiring::stop_session(conn_id).await;
-    Ok(axum::Json(serde_json::json!({ "id": conn_id, "stopped": true })))
+    Ok(axum::Json(
+        serde_json::json!({ "id": conn_id, "stopped": true }),
+    ))
 }
 
 /// `GET /v1/admin/messages` — the resend-window store rows (the `messages`
@@ -639,9 +640,7 @@ mod scope_matrix {
                 assert!(
                     segs.iter().all(|s| !s.is_empty()
                         && s.chars()
-                            .all(|c| c.is_ascii_lowercase()
-                                || c.is_ascii_digit()
-                                || c == '-')),
+                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')),
                     "{handler}: {scope} segments must be lowercase alnum/hyphen"
                 );
             }
@@ -658,4 +657,4 @@ mod scope_matrix {
         declared.sort_unstable();
         assert_eq!(all, declared, "scopes module and HANDLER_SCOPES diverged");
     }
-}// (removed dead type; scope matrix extended with the admin/RFW handlers)
+} // (removed dead type; scope matrix extended with the admin/RFW handlers)

@@ -19,18 +19,18 @@
 //! modules the handlers reference (`crate::runtime_wiring`) ride the same
 //! includes so the `crate::` paths resolve identically to the binary.
 
+#[path = "../src/events.rs"]
+mod events;
+#[path = "../src/handlers.rs"]
+mod handlers;
 #[path = "../src/rest_api.rs"]
 mod rest_api;
+#[path = "../src/runtime_wiring.rs"]
+mod runtime_wiring;
 #[path = "../src/session.rs"]
 mod session;
 #[path = "../src/submission.rs"]
 mod submission;
-#[path = "../src/events.rs"]
-mod events;
-#[path = "../src/runtime_wiring.rs"]
-mod runtime_wiring;
-#[path = "../src/handlers.rs"]
-mod handlers;
 
 use std::sync::Arc;
 

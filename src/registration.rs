@@ -231,15 +231,13 @@ pub fn print(section: Option<String>) -> anyhow::Result<()> {
         // enroll; the fire proxy-calls this service's
         // `/v1/internal/schedules/run` (constants in
         // `runtime_wiring::retention` keep the contract honest).
-        schedules: &[
-            ScheduleDecl {
-                schedule_type: "fix-message-purge",
-                cron_expression: "30 5 * * *",
-                timezone: "UTC",
-                target_config: r#"{"internalPath": "/v1/internal/schedules/run", "scheduleType": "fix-message-purge"}"#,
-                max_retries: 3,
-            },
-        ],
+        schedules: &[ScheduleDecl {
+            schedule_type: "fix-message-purge",
+            cron_expression: "30 5 * * *",
+            timezone: "UTC",
+            target_config: r#"{"internalPath": "/v1/internal/schedules/run", "scheduleType": "fix-message-purge"}"#,
+            max_retries: 3,
+        }],
     };
     sentin8::registration::print_registration(section, &reg, empty_openapi)
 }

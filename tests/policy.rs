@@ -250,10 +250,22 @@ fn cron_scope_admits_the_purge_action() {
     let action = "exchange8:gateway:fix-message:purge";
     let out = e.evaluate(&ctx("m2m", &[action]), &EvalTarget::new(action));
     assert!(out.is_allow(), "the purge action's own scope admits");
-    let cron = e.evaluate(&ctx("m2m", &["sentin8:cron:write"]), &EvalTarget::new(action));
-    assert!(cron.is_allow(), "the cron workload scope admits the purge fire");
-    let wrong = e.evaluate(&ctx("m2m", &["exchange8:connection:read"]), &EvalTarget::new(action));
-    assert!(!wrong.is_allow(), "an unrelated gateway scope must not purge");
+    let cron = e.evaluate(
+        &ctx("m2m", &["sentin8:cron:write"]),
+        &EvalTarget::new(action),
+    );
+    assert!(
+        cron.is_allow(),
+        "the cron workload scope admits the purge fire"
+    );
+    let wrong = e.evaluate(
+        &ctx("m2m", &["exchange8:connection:read"]),
+        &EvalTarget::new(action),
+    );
+    assert!(
+        !wrong.is_allow(),
+        "an unrelated gateway scope must not purge"
+    );
 }
 
 /// (h) the enroll-time dry-run gate (§4.2) accepts the declared set —

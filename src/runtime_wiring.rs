@@ -95,7 +95,9 @@ async fn keys() -> Option<SessionKeyRegistry> {
 /// an empty registry that rejects every comp id (no Option dance at the
 /// acceptor call sites).
 async fn armed_keys() -> SessionKeyRegistry {
-    keys().await.unwrap_or_else(|| SessionKeyRegistry::new(Vec::new()))
+    keys()
+        .await
+        .unwrap_or_else(|| SessionKeyRegistry::new(Vec::new()))
 }
 
 /// Resolve every registered session key from the secret backend chain and
@@ -113,12 +115,11 @@ async fn armed_keys() -> SessionKeyRegistry {
 /// public_helpers.sql) applied to this schema's outbox — a gateway has
 /// lifecycle outbox rows in every env it has sessions for.
 async fn build_key_registry(pool: &sqlx::PgPool) -> anyhow::Result<()> {
-    let envs: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT DISTINCT env_id FROM sentin8_outbox_unrelayed_envs('gateway')",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(anyhow::Error::msg)?;
+    let envs: Vec<Uuid> =
+        sqlx::query_scalar("SELECT DISTINCT env_id FROM sentin8_outbox_unrelayed_envs('gateway')")
+            .fetch_all(pool)
+            .await
+            .map_err(anyhow::Error::msg)?;
     let mut keys = Vec::new();
     for env_id in envs {
         let mut conn = pool.acquire().await.map_err(anyhow::Error::msg)?;
@@ -165,11 +166,13 @@ async fn build_key_registry(pool: &sqlx::PgPool) -> anyhow::Result<()> {
 static SESSIONS_RAW: tokio::sync::RwLock<Option<HashMap<Uuid, tokio::sync::mpsc::Sender<()>>>> =
     tokio::sync::RwLock::const_new(None);
 
-async fn sessions() -> tokio::sync::RwLockReadGuard<'static, Option<HashMap<Uuid, tokio::sync::mpsc::Sender<()>>>> {
+async fn sessions(
+) -> tokio::sync::RwLockReadGuard<'static, Option<HashMap<Uuid, tokio::sync::mpsc::Sender<()>>>> {
     SESSIONS_RAW.read().await
 }
 
-async fn sessions_mut() -> tokio::sync::RwLockWriteGuard<'static, Option<HashMap<Uuid, tokio::sync::mpsc::Sender<()>>>> {
+async fn sessions_mut(
+) -> tokio::sync::RwLockWriteGuard<'static, Option<HashMap<Uuid, tokio::sync::mpsc::Sender<()>>>> {
     SESSIONS_RAW.write().await
 }
 
@@ -376,10 +379,7 @@ async fn fix_connection(
                     SessionAction::Send(ref mut out) => {
                         // Frame + persist BEFORE transmit (invariants 2+3).
                         let frame = out.encode();
-                        if persist_outbound(&core, *id, s, &frame, out)
-                            .await
-                            .is_none()
-                        {
+                        if persist_outbound(&core, *id, s, &frame, out).await.is_none() {
                             torn_down = true;
                             break;
                         }
@@ -419,15 +419,11 @@ async fn fix_connection(
     }
 }
 
-
 // ── Logon handshake ─────────────────────────────────────────────────────
 
 /// The logon gate: verify the 553/554 key pair (constant-time against the
 /// armed registry), resolve the connection row, then build the session.
-async fn logon_handshake(
-    core: &Arc<AppState>,
-    msg: &FixMessage,
-) -> Option<(Uuid, FixSession)> {
+async fn logon_handshake(core: &Arc<AppState>, msg: &FixMessage) -> Option<(Uuid, FixSession)> {
     let username = msg.get(tg::SENDER_COMP_ID).unwrap_or("").to_string();
     let password = msg.get(TAG_PASSWORD).unwrap_or("").to_string();
     // Unarmed registry = empty registry — every comp id fails the verify
@@ -535,13 +531,15 @@ async fn persist_outbound(
     let mut conn = core.pool.acquire().await.ok()?;
     let mut tx = conn.begin().await.ok()?;
     sentin8::shell::set_tenant_context(&mut tx, env_id).await;
-    sqlx::query("UPDATE fix_session_state SET out_seq = $3 WHERE env_id = $1 AND connection_id = $2")
-        .bind(env_id)
-        .bind(conn_id)
-        .bind(s.out_seq() as i64)
-        .execute(&mut *tx)
-        .await
-        .ok()?;
+    sqlx::query(
+        "UPDATE fix_session_state SET out_seq = $3 WHERE env_id = $1 AND connection_id = $2",
+    )
+    .bind(env_id)
+    .bind(conn_id)
+    .bind(s.out_seq() as i64)
+    .execute(&mut *tx)
+    .await
+    .ok()?;
     if is_app {
         sqlx::query(
             r#"INSERT INTO fix_message (env_id, connection_id, seq_no, msg_type, msg_body)
@@ -607,10 +605,10 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
                 "route": route_name,
                 "order": order,
             });
-            let identity = lifecycle_identity(env_id, &msg
-                .get(tg::SENDER_COMP_ID)
-                .unwrap_or("")
-                .to_string());
+            let identity = lifecycle_identity(
+                env_id,
+                msg.get(tg::SENDER_COMP_ID).unwrap_or(""),
+            );
             emit_event_tx(
                 core,
                 &identity,
@@ -628,10 +626,10 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
                 "cl_ord_id": order.cl_ord_id,
                 "reject": format!("{reject:?}"),
             });
-            let identity = lifecycle_identity(env_id, &msg
-                .get(tg::SENDER_COMP_ID)
-                .unwrap_or("")
-                .to_string());
+            let identity = lifecycle_identity(
+                env_id,
+                msg.get(tg::SENDER_COMP_ID).unwrap_or(""),
+            );
             emit_event_tx(
                 core,
                 &identity,
@@ -764,11 +762,7 @@ fn lifecycle_identity(env_id: Uuid, subject: &str) -> crate::events::EventIdenti
 /// Session-lifecycle event for a caller with no resolved tenant (the
 /// pre-connection logon-rejected path). Under seed-env (nil) context — the
 /// rejected credential has no tenant yet; the comp id rides the snapshot.
-async fn emit_lifecycle_event(
-    core: &Arc<AppState>,
-    op: ConnectionOp,
-    snapshot: serde_json::Value,
-) {
+async fn emit_lifecycle_event(core: &Arc<AppState>, op: ConnectionOp, snapshot: serde_json::Value) {
     let identity = lifecycle_identity(Uuid::nil(), GATEWAY_COMP_ID);
     emit_event_tx(
         core,
@@ -778,12 +772,7 @@ async fn emit_lifecycle_event(
     .await;
 }
 
-async fn emit_connected(
-    core: &Arc<AppState>,
-    conn_id: Uuid,
-    comp: &str,
-    env_id: Option<Uuid>,
-) {
+async fn emit_connected(core: &Arc<AppState>, conn_id: Uuid, comp: &str, env_id: Option<Uuid>) {
     let Some(env) = env_id.or(connection_env(core, conn_id).await) else {
         return;
     };
@@ -839,13 +828,11 @@ async fn cancel_on_disconnect(core: &Arc<AppState>, conn_id: Uuid, comp: &str) {
 async fn connection_env(core: &Arc<AppState>, conn_id: Uuid) -> Option<Uuid> {
     let mut conn = core.pool.acquire().await.ok()?;
     let mut ctx = conn.begin().await.ok()?;
-    let env: Option<Uuid> = sqlx::query_scalar(
-        "SELECT env_id FROM connection WHERE id = $1",
-    )
-    .bind(conn_id)
-    .fetch_optional(&mut *ctx)
-    .await
-    .ok()?;
+    let env: Option<Uuid> = sqlx::query_scalar("SELECT env_id FROM connection WHERE id = $1")
+        .bind(conn_id)
+        .fetch_optional(&mut *ctx)
+        .await
+        .ok()?;
     ctx.commit().await.ok()?;
     env
 }
@@ -854,13 +841,12 @@ async fn connection_env(core: &Arc<AppState>, conn_id: Uuid) -> Option<Uuid> {
 async fn connection_of(core: &Arc<AppState>, conn_id: Uuid) -> Option<(Uuid, String)> {
     let mut conn = core.pool.acquire().await.ok()?;
     let mut ctx = conn.begin().await.ok()?;
-    let row: Option<(Uuid, String)> = sqlx::query_as(
-        "SELECT env_id, client_comp_id FROM connection WHERE id = $1",
-    )
-    .bind(conn_id)
-    .fetch_optional(&mut *ctx)
-    .await
-    .ok()?;
+    let row: Option<(Uuid, String)> =
+        sqlx::query_as("SELECT env_id, client_comp_id FROM connection WHERE id = $1")
+            .bind(conn_id)
+            .fetch_optional(&mut *ctx)
+            .await
+            .ok()?;
     ctx.commit().await.ok()?;
     row
 }

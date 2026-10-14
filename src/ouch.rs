@@ -567,7 +567,7 @@ mod tests {
 
     #[test]
     fn decode_rejects_unknown_and_short() {
-        assert!(decode_inbound(&[b'Z']).is_none());
+        assert!(decode_inbound(b"Z").is_none());
         assert!(decode_inbound(&[]).is_none());
         let short = &[MSG_ENTER_ORDER, 1, 2, 3];
         assert!(decode_inbound(short).is_none());
