@@ -1,16 +1,16 @@
-# README.md: Ex8:Gateway
+# README.md: Exchange8:Gateway
 
 ## 1. Summary
 
-Ex8:Gateway is the market-access front end of the exchange8 vertical: it
+Exchange8:Gateway is the market-access front end of the exchange8 vertical: it
 terminates FIX 4.2 client sessions (with an OUCH binary-codec subset and
 BFF-proxied REST/WebSocket order shapes), runs the FIX session protocol
 (logon, sequence integrity, resends, heartbeat, logout) as a pure state
 machine, and converts downstream matching-engine lifecycle events into FIX
 ExecutionReports. Every client-facing order goes out through a normalized
 order model (`ExchangeOrder`) that routes by order type — limit/market to
-Ex8:ME, pegged to the Ex8:OMS peg supervisor, strategy-with-destination to
-Ex8:SOR.
+Exchange8:ME, pegged to the Exchange8:OMS peg supervisor, strategy-with-destination to
+Exchange8:SOR.
 
 ## 2. Motivation
 
@@ -34,7 +34,7 @@ Ex8:SOR.
 
 ## 3. Architecture & High-Level Design
 
-Ex8:Gateway is a Rust axum binary built on the shared `sentin8::shell`
+Exchange8:Gateway is a Rust axum binary built on the shared `sentin8::shell`
 platform crate (Sentin8 Shell): service self-registration
 (`--print-registration`), the capped PostgreSQL pool, the health endpoint,
 the Sentin8:Policy (Shield) admin API mount, the mimalloc global allocator,
@@ -66,11 +66,11 @@ graph TD
         SYS["Sentin8:Sys - POST /v1/audit, GET /v1/resolve/hostname"]
     end
 
-    subgraph Ex8[exchange8 vertical]
-        GW["Ex8:Gateway - exchange8-gateway"]
-        ME["Ex8:ME"]
-        OMS["Ex8:OMS - peg supervision"]
-        SOR["Ex8:SOR - external routing"]
+    subgraph Exchange8[exchange8 vertical]
+        GW["Exchange8:Gateway - exchange8-gateway"]
+        ME["Exchange8:ME"]
+        OMS["Exchange8:OMS - peg supervision"]
+        SOR["Exchange8:SOR - external routing"]
         DB[("PostgreSQL: db exchange8 / schema gateway")]
     end
 
@@ -243,7 +243,7 @@ plain safe Rust (length check + XOR-accumulate fold).
 
 ## 7. Unresolved Questions / Future Designs
 
-- The Ex8:Risk pre-check endpoint (`POST /v1/authorize`) is the documented
+- The Exchange8:Risk pre-check endpoint (`POST /v1/authorize`) is the documented
   cross-service seam — Risk's router does not mount it yet; the gateway
   call site stays documented (DESIGN.md §10) until the endpoint exists.
 - The ME ↔ Gateway direct-stream contract (exec-report event delivery into

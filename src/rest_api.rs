@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway logon key verification + BFF REST order surface.
+//! Exchange8:Gateway logon key verification + BFF REST order surface.
 //!
 //! - **Logon handshake**: Username (553) / Password (554) carry a
 //!   *session key reference*, not

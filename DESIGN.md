@@ -1,8 +1,8 @@
-# DESIGN.md: Ex8:Gateway — Detailed Design Document
+# DESIGN.md: Exchange8:Gateway — Detailed Design Document
 
 ## 1. Scope & Context
 
-Ex8:Gateway owns:
+Exchange8:Gateway owns:
 
 - **Client session lifecycle** — the `gateway.connection` rows (CompID,
   status, protocol, cancel-on-disconnect flag, vendor/beneficiary,
@@ -14,8 +14,8 @@ Ex8:Gateway owns:
 - **ExecutionReport conversion** — matching-engine lifecycle events → FIX
   35=8 field selection for the owning client session.
 - **Order routing at the front door** — validated `ExchangeOrder`s are
-  dispatched to Ex8:ME (limit/market), the Ex8:OMS peg supervisor
-  (pegged), or Ex8:SOR (strategy tokens + `ex_destination`); the gateway
+  dispatched to Exchange8:ME (limit/market), the Exchange8:OMS peg supervisor
+  (pegged), or Exchange8:SOR (strategy tokens + `ex_destination`); the gateway
   assigns `gw_order_id` from leased sequence blocks.
 - **Session admin surface** — connection listing, sequence-state reads and
   admin sequence resets, Shield policy admin via the shared shell mount.
@@ -23,16 +23,16 @@ Ex8:Gateway owns:
   `gateway.fix_message` (resend store), the local `gateway.outbox` (Bus
   relay) and `gateway.audit_journal` (Sys audit pusher).
 
-Ex8:Gateway explicitly does NOT own:
+Exchange8:Gateway explicitly does NOT own:
 
-- Matching, peg pricing, or routing strategy (Ex8:ME / Ex8:OMS / Ex8:SOR).
+- Matching, peg pricing, or routing strategy (Exchange8:ME / Exchange8:OMS / Exchange8:SOR).
 - Pre-trade risk authorization in depth — the submission pipeline calls the
-  Ex8:Risk pre-check; the gateway performs only shape validation.
-- Trade/ledger persistence (events go to the bus; Ex8:Clearing sinks them).
-- Instrument reference data (Ex8:RefData resolves symbols).
+  Exchange8:Risk pre-check; the gateway performs only shape validation.
+- Trade/ledger persistence (events go to the bus; Exchange8:Clearing sinks them).
+- Instrument reference data (Exchange8:RefData resolves symbols).
 - Identity, JWT issuance, or FIX session-key issuance (Sentin8:Auth); the
   gateway only verifies keys issued by Auth against `secret://` references.
-- Market-data publication (Ex8:MD) or vendor feeds (Ex8:VFeeds).
+- Market-data publication (Exchange8:MD) or vendor feeds (Exchange8:VFeeds).
 
 System context — trust boundaries are the platform (Sentin8 services,
 shared trust root, M2M clients) vs the exchange8 vertical (gateway +
@@ -56,11 +56,11 @@ graph TD
     end
 
     subgraph Vertical["exchange8 vertical"]
-        GW["Ex8:Gateway — exchange8-gateway"]
-        ME2["Ex8:ME"]
-        OMS2["Ex8:OMS"]
-        SOR2["Ex8:SOR"]
-        RISK2["Ex8:Risk — pre-trade authorize"]
+        GW["Exchange8:Gateway — exchange8-gateway"]
+        ME2["Exchange8:ME"]
+        OMS2["Exchange8:OMS"]
+        SOR2["Exchange8:SOR"]
+        RISK2["Exchange8:Risk — pre-trade authorize"]
         DBX[("PostgreSQL — db exchange8, schema gateway")]
     end
 
@@ -114,7 +114,7 @@ graph TD
     HDL -- "same-tx RLS context + query" --> POOL
     SES -- "SessionAction::Send / Disconnect" --> TLS
     SES -- "store_lookup callback" --> POOL
-    SUB -- "validated ExchangeOrder" --> ME2["Ex8:ME"]
+    SUB -- "validated ExchangeOrder" --> ME2["Exchange8:ME"]
     EXR -- "ExecReport prepare_app_message" --> SES
     REST -- "LogonDecision" --> SES
     OUC -- "normalized orders / OuchOutbound" --> SUB
@@ -178,7 +178,7 @@ Components:
   `CancelOnDisconnect` registry, and `OnBehalfOf` attribution. The RISK
   PRE-CHECK (`POST /v1/authorize`, sync, fail-closed) is the documented
   cross-service seam — `route_order` performs the shape stage only; the
-  endpoint is owned by Ex8:Risk (its router does not mount it yet — §10).
+  endpoint is owned by Exchange8:Risk (its router does not mount it yet — §10).
 - **Typed event envelopes** — `events.rs` (the refdata convention): the five
   vocabulary constants + the ME cancel-all mirror, the `EventIdentity` block,
   and the envelope builders; emissions pair with the domain persistence in
@@ -227,7 +227,7 @@ sequenceDiagram
     autonumber
     participant C as FIX client
     participant P as Sentin8:Proxy
-    participant GW as Ex8:Gateway
+    participant GW as Exchange8:Gateway
     participant AUTH as Sentin8:Auth
     participant DB as gateway schema
 
@@ -252,7 +252,7 @@ Request family 2 — new order submission (FIX path, shape stage):
 sequenceDiagram
     autonumber
     participant C as FIX client
-    participant GW as Ex8:Gateway
+    participant GW as Exchange8:Gateway
     participant RDB as gateway schema
 
     C->>GW: NewOrderSingle 35=D (in-order seq, non-PossDup)
@@ -265,11 +265,11 @@ sequenceDiagram
         GW->>RDB: lease gw_order_id (platform sequence block) + persist message
         GW->>RDB: INSERT gateway.outbox (idempotency_key = outbox id) in same tx
         alt OrdType Limit plain
-            GW->>GW: Route::MatchingEngine - dispatch to Ex8:ME AddOrder
+            GW->>GW: Route::MatchingEngine - dispatch to Exchange8:ME AddOrder
         else OrdType Pegged / peg metadata
-            GW->>GW: Route::OmsPeg - dispatch to Ex8:OMS peg supervisor
+            GW->>GW: Route::OmsPeg - dispatch to Exchange8:OMS peg supervisor
         else strategy + ex_destination
-            GW->>GW: Route::Sor - dispatch to Ex8:SOR
+            GW->>GW: Route::Sor - dispatch to Exchange8:SOR
         end
         GW-->>C: ack path continues via execution report family
     end
@@ -286,8 +286,8 @@ requests replay from the store with `PossDupFlag=43=Y`.
 ```mermaid
 sequenceDiagram
     autonumber
-    participant ME as Ex8:ME (event stream)
-    participant GW as Ex8:Gateway
+    participant ME as Exchange8:ME (event stream)
+    participant GW as Exchange8:Gateway
     participant DB as gateway schema
     participant C as FIX client
 
@@ -312,7 +312,7 @@ sequenceDiagram
     autonumber
     participant APP as Operator app (Bff8ApiClient)
     participant BFF as Sentin8:BFF
-    participant GW as Ex8:Gateway
+    participant GW as Exchange8:Gateway
     participant SH as Sentin8:Policy (Shield)
     participant DB as gateway schema
 
@@ -493,8 +493,8 @@ report:
 sequenceDiagram
     autonumber
     participant C as FIX client
-    participant GW as Ex8:Gateway
-    participant ME as Ex8:ME
+    participant GW as Exchange8:Gateway
+    participant ME as Exchange8:ME
     participant DB as gateway schema
 
     C->>GW: NewOrderSingle 35=D (ClOrdID, symbol, side, qty, price)
@@ -551,7 +551,7 @@ key is `bus:{env_id}:gateway`; names follow
 | `exchange8:gateway:connection:disconnected` | Session teardown (logout, low-seq, loss, drain, admin stop) | `connection_id`, `client_comp_id` |
 | `exchange8:gateway:order:routed` | Order validated + dispatched to its route | route + the full normalized `ExchangeOrder` + `connection_id` + `cl_ord_id` |
 | `exchange8:gateway:order:rejected` | Order failed the intake pipeline pre-dispatch | `cl_ord_id`, `connection_id`, reject reason |
-| `exchange8:me:order:cancel-all` | Cancel-on-disconnect dispatch on session drop | `connection_id` (consumed by Ex8:ME's direct-stream subscriber) |
+| `exchange8:me:order:cancel-all` | Cancel-on-disconnect dispatch on session drop | `connection_id` (consumed by Exchange8:ME's direct-stream subscriber) |
 
 Every envelope carries the identity block (`env_id`, `subject_id`,
 `correlation_id`, `idempotency_key`) — payload-complete per the §6.7
@@ -662,7 +662,7 @@ Recovery sequence — gateway restart with live sessions:
 sequenceDiagram
     autonumber
     participant CO as Sentin8:Captain
-    participant GW as Ex8:Gateway (new instance)
+    participant GW as Exchange8:Gateway (new instance)
     participant DB as gateway schema
     participant C as FIX client
 
@@ -766,7 +766,7 @@ constant-time comparison is a safe byte-fold.
 
 ```mermaid
 graph TD
-    PYR["Ex8:Gateway test pyramid"]
+    PYR["Exchange8:Gateway test pyramid"]
     PYR --> E2E["E2E - platform e2e-ts UI flows exercise the BFF proxy surface - no direct SQL"]
     PYR --> INT["Integration - DB-backed: tests/sql_matrix.rs RLS matrix on live postgres as exchange8_probe NOBYPASSRLS role"]
     PYR --> HAND["Handler - tests/handlers_oneshot.rs real router via tower oneshot with never-connected pool"]
@@ -810,9 +810,9 @@ Layer ownership:
 ## 10. Open Questions
 
 - **Risk pre-check wiring (cross-service seam).** The submission pipeline's
-  risk stage is the documented hook (`submission.rs`; Ex8:Risk design §7
+  risk stage is the documented hook (`submission.rs`; Exchange8:Risk design §7
   `POST /v1/authorize` with the plain `ExchangeOrder`, sync, <5 ms budget,
-  fail-closed `RiskUnavailable`), but Ex8:Risk's router does not mount the
+  fail-closed `RiskUnavailable`), but Exchange8:Risk's router does not mount the
   endpoint yet (`services/risk/src/main.rs` — the handler wiring rides the
   auth-middleware pass). When Risk mounts it, the gateway call uses the
   service's own cert-bound M2M workload — no invented interim path.

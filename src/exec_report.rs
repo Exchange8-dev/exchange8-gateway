@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway FIX ExecutionReport conversion.
+//! Exchange8:Gateway FIX ExecutionReport conversion.
 //!
 //! Converts ME lifecycle events (the outbound wire-spec messages) into FIX
 //! ExecutionReport (35=8) field selections: ExecType (150), OrdStatus (39),

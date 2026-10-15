@@ -637,7 +637,7 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
 }
 
 /// FIX 4.2 NewOrderSingle → normalized `ExchangeOrder` (the shape the
-/// pipeline + ME/OMS/SOR consume; instrument ids resolve via Ex8:RefData).
+/// pipeline + ME/OMS/SOR consume; instrument ids resolve via Exchange8:RefData).
 fn fix_to_order(
     conn_id: Uuid,
     msg: &FixMessage,
@@ -673,7 +673,7 @@ fn fix_to_order(
         user_id: None,
         connection_id: 0,
         instrument: exchange8::contracts::order::InstrumentRef {
-            id: 0, // resolved via Ex8:RefData at the risk pre-check stage
+            id: 0, // resolved via Exchange8:RefData at the risk pre-check stage
             symbol,
             isin: None,
             mic: String::new(),
@@ -802,7 +802,7 @@ async fn emit_disconnected(core: &Arc<AppState>, conn_id: Uuid, comp: &str, _sta
 
 /// Cancel-on-disconnect: on session drop, the connection's LIVE orders are
 /// cancelled (ME `CancelAllForConnection` — business rule 9; DESIGN.md §5).
-/// The ME mirror event rides the SAME stream family; Ex8:ME's
+/// The ME mirror event rides the SAME stream family; Exchange8:ME's
 /// direct-stream subscriber consumes it.
 async fn cancel_on_disconnect(core: &Arc<AppState>, conn_id: Uuid, comp: &str) {
     let Some(env_id) = connection_env(core, conn_id).await else {

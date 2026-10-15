@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway OUCH — binary order-entry protocol codec (Nasdaq-style).
+//! Exchange8:Gateway OUCH — binary order-entry protocol codec (Nasdaq-style).
 //!
 //! OUCH is the low-latency binary alternative to FIX for order entry: fixed
 //! layout, no delimiters, little-endian, alpha fields left-justified and

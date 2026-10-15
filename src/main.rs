@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:GATEWAY service binary — FIX 4.2/OUCH/WS order entry + session management.
+//! Exchange8:GATEWAY service binary — FIX 4.2/OUCH/WS order entry + session management.
 //!
 //! Design: `design/sentin8-exchange8-gateway-technical-design.md` (see the
 //! service doc for the exact file). Core logic in the sibling modules;

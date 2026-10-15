@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway typed event envelopes (DBX producer path).
+//! Exchange8:Gateway typed event envelopes (DBX producer path).
 //!
 //! Every gateway lifecycle/order write pairs the domain persistence (the
 //! `gateway.fix_session_state` counter advance + the `gateway.fix_message`
@@ -49,7 +49,7 @@ pub const EV_ORDER_ROUTED: &str = "exchange8:gateway:order:routed";
 pub const EV_ORDER_REJECTED: &str = "exchange8:gateway:order:rejected";
 /// `exchange8:me:order:cancel-all` — the cancel-on-disconnect dispatch
 /// (business rule 9 — the ME mirror of `CancelAllForConnection`); produced
-/// by the gateway's disconnect path, consumed by Ex8:ME's direct-stream
+/// by the gateway's disconnect path, consumed by Exchange8:ME's direct-stream
 /// subscriber. The name stays in the ME vocabulary — ME owns the reaction.
 pub const EV_ME_CANCEL_ALL: &str = "exchange8:me:order:cancel-all";
 

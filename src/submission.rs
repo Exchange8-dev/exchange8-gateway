@@ -3,17 +3,17 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-// Ex8:Gateway submission pipeline + session features.
+// Exchange8:Gateway submission pipeline + session features.
 //
 // - **Submission pipeline**: validated `ExchangeOrder` → risk
 //   pre-check hook → `gw_order_id` assignment (monotonic counter, the
 //   shell leases blocks from the platform sequence facility) → routing
 //   by order type
 //   (ME direct / OMS peg / SOR external). See DESIGN.md §2.
-//   **Cross-service seam (open):** the Ex8:Risk pre-check
+//   **Cross-service seam (open):** the Exchange8:Risk pre-check
 //   (`POST /v1/authorize` with `exchange8::contracts::risk::AuthorizeRequest`
 //   = the plain `ExchangeOrder`, sync, <5 ms budget, fail-closed on
-//   `RiskUnavailable`) is NOT yet mounted by Ex8:Risk (its router carries
+//   `RiskUnavailable`) is NOT yet mounted by Exchange8:Risk (its router carries
 //   no `/v1/authorize` route); the call site here stays the documented
 //   seam — `route_order` performs shape validation only. Wiring the real
 //   call is deferred until Risk mounts the endpoint (design

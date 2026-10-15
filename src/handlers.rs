@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway data handlers — FIX session/connection management API.
+//! Exchange8:Gateway data handlers — FIX session/connection management API.
 //!
 //! Every handler follows the platform authorization pipeline (§5): verify
 //! bearer → scope check → RLS context (same connection) → explicit

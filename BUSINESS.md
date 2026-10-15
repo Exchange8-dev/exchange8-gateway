@@ -1,7 +1,7 @@
-# BUSINESS.md: Ex8:Gateway — Business Requirements & Functionality
+# BUSINESS.md: Exchange8:Gateway — Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
-> Ex8:Gateway **does for the business**. For architecture read `README.md`;
+> Exchange8:Gateway **does for the business**. For architecture read `README.md`;
 > for wire-level detail read `DESIGN.md`.
 
 ## 1. Business Purpose
@@ -48,17 +48,17 @@
 
 | Concern | Owning service |
 |---|---|
-| Matching, crossing price/quantity | Ex8:ME |
-| Peg pricing and peg supervision | Ex8:OMS |
-| Smart routing strategy / external venues | Ex8:SOR |
-| Pre-trade risk authorization in depth | Ex8:Risk |
-| Trade/ledger persistence and clearing workflow | Ex8:Clearing |
-| Instrument reference data (symbols, ISIN, MIC) | Ex8:RefData |
+| Matching, crossing price/quantity | Exchange8:ME |
+| Peg pricing and peg supervision | Exchange8:OMS |
+| Smart routing strategy / external venues | Exchange8:SOR |
+| Pre-trade risk authorization in depth | Exchange8:Risk |
+| Trade/ledger persistence and clearing workflow | Exchange8:Clearing |
+| Instrument reference data (symbols, ISIN, MIC) | Exchange8:RefData |
 | Identity, credentials, FIX session-key issuance | Sentin8:Auth |
 | Policy decisions (RBAC/ABAC/ReBAC engine) | Sentin8:Policy (Shield) |
 | Durable event fan-out | Sentin8:Bus |
 | Audit event storage & retrieval | Sentin8:Sys |
-| Market-data publication and vendor feeds | Ex8:MD / Ex8:VFeeds |
+| Market-data publication and vendor feeds | Exchange8:MD / Exchange8:VFeeds |
 | Scheduled work (e.g. store purge timing) | Sentin8:Cron |
 
 ## 3. Business Capabilities
@@ -115,17 +115,17 @@ Events flow out through the durable outbox; names follow the platform
 | `exchange8:gateway:connection:connected` | Logon accepted — session established with a verified credential | Ops monitoring, session supervisors |
 | `exchange8:gateway:connection:rejected` | Logon credential failed (unknown CompID or bad key; never discloses which factor) | Ops/monitoring, security alerts |
 | `exchange8:gateway:connection:disconnected` | Session teardown of any cause (logout, low-seq, loss, drain, admin stop) | Ops monitoring, session supervisors |
-| `exchange8:gateway:order:routed` | A validated order was dispatched to its route (ME / OMS peg / SOR) with the full normalized order attached | Ex8:Clearing (drop-copy/mirror), intake consumers |
-| `exchange8:gateway:order:rejected` | An order failed intake validation pre-dispatch with the precise reason | Ex8:Clearing mirror, monitoring |
-| `exchange8:me:order:cancel-all` | Cancel-on-disconnect fired on a session drop (ME mirror event) | Ex8:ME |
-| Execution-report-derived events | The gateway converted and delivered a lifecycle report (accepted/booked/trade/cancelled/rejected/replaced) for the owning client | Ex8:Clearing sink, monitoring |
-| `exchange8:admin:instrument:halted` | Admin halt via the gateway/ME admin surface | Ex8:MD, monitoring |
+| `exchange8:gateway:order:routed` | A validated order was dispatched to its route (ME / OMS peg / SOR) with the full normalized order attached | Exchange8:Clearing (drop-copy/mirror), intake consumers |
+| `exchange8:gateway:order:rejected` | An order failed intake validation pre-dispatch with the precise reason | Exchange8:Clearing mirror, monitoring |
+| `exchange8:me:order:cancel-all` | Cancel-on-disconnect fired on a session drop (ME mirror event) | Exchange8:ME |
+| Execution-report-derived events | The gateway converted and delivered a lifecycle report (accepted/booked/trade/cancelled/rejected/replaced) for the owning client | Exchange8:Clearing sink, monitoring |
+| `exchange8:admin:instrument:halted` | Admin halt via the gateway/ME admin surface | Exchange8:MD, monitoring |
 
 Inbound (consumed):
 
 | Input | Source | Business meaning |
 |---|---|---|
-| Matching-engine lifecycle events | Ex8:ME | Accepted/booked/executed/killed/modified/repriced/rejected outcomes become client-facing reports |
+| Matching-engine lifecycle events | Exchange8:ME | Accepted/booked/executed/killed/modified/repriced/rejected outcomes become client-facing reports |
 | Shield policy sets | Sentin8:Policy | Authorization decisions over the gateway's actions |
 | Stream consumers (bus) | Sentin8:Bus | Service reactions to subscription families the shell consumes |
 | Service registration/entitlement updates | Sentin8:Sys `sentin8:sys:service:updated` | Platform-driven service state refresh |
@@ -160,7 +160,7 @@ Inbound (consumed):
 
 ## 6. Target-User Roles & Use Cases
 
-| Persona | Role | Use of Ex8:Gateway |
+| Persona | Role | Use of Exchange8:Gateway |
 |---|---|---|
 | Institutional/prop desk trader | FIX OMS user | Places limit orders with day/GTC/IOC/FOK/GTD terms; receives execution reports; relies on resend after a disconnect |
 | Vendor / sponsored client | Virtual session operator | Submits orders on behalf of beneficiary firms (tag 115), reports flow back to the vendor while attribution stays with the beneficiary |
@@ -191,11 +191,11 @@ Inbound (consumed):
 | Event fan-out | Sentin8:Bus | Domain events delivery and stream consumption (M2M `exchange8:gateway`) |
 | Audit sink | Sentin8:Sys | `POST /v1/audit` via the `gateway-audit` workload |
 | Host resolution (TLS) | Sentin8:Sys `GET /v1/resolve/hostname` | Database-free context resolution per `sentin8:sys:instances:read` |
-| Matching & pricing | Ex8:ME | Execution of limit/market orders |
-| Peg supervision | Ex8:OMS | Pegged order pricing and lifecycle |
-| External routing | Ex8:SOR | Strategy-tokened orders with an external destination |
-| Pre-trade risk | Ex8:Risk | Deep authorization (halt state, STP, limits) in the submission pipeline |
-| Reference data | Ex8:RefData | Symbol/instrument resolution at intake |
+| Matching & pricing | Exchange8:ME | Execution of limit/market orders |
+| Peg supervision | Exchange8:OMS | Pegged order pricing and lifecycle |
+| External routing | Exchange8:SOR | Strategy-tokened orders with an external destination |
+| Pre-trade risk | Exchange8:Risk | Deep authorization (halt state, STP, limits) in the submission pipeline |
+| Reference data | Exchange8:RefData | Symbol/instrument resolution at intake |
 | Ingress | Sentin8:Proxy | SNI routing, X-Sentin8-* context injection, TLS termination support |
 | Client transport | Sentin8:BFF | REST/WS token flow for app and SDK clients |
 

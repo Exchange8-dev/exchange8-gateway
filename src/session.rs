@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway FIX 4.2 session engine — sequence/resend/gap-fill semantics
+//! Exchange8:Gateway FIX 4.2 session engine — sequence/resend/gap-fill semantics
 //! (platform spec, DB-backed counters per design).
 //!
 //! Pure protocol state machine over an abstract message transport: the tokio
