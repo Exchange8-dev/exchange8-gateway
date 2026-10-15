@@ -605,10 +605,7 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
                 "route": route_name,
                 "order": order,
             });
-            let identity = lifecycle_identity(
-                env_id,
-                msg.get(tg::SENDER_COMP_ID).unwrap_or(""),
-            );
+            let identity = lifecycle_identity(env_id, msg.get(tg::SENDER_COMP_ID).unwrap_or(""));
             emit_event_tx(
                 core,
                 &identity,
@@ -626,10 +623,7 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
                 "cl_ord_id": order.cl_ord_id,
                 "reject": format!("{reject:?}"),
             });
-            let identity = lifecycle_identity(
-                env_id,
-                msg.get(tg::SENDER_COMP_ID).unwrap_or(""),
-            );
+            let identity = lifecycle_identity(env_id, msg.get(tg::SENDER_COMP_ID).unwrap_or(""));
             emit_event_tx(
                 core,
                 &identity,

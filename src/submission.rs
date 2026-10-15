@@ -3,32 +3,32 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ex8:Gateway submission pipeline + session features.
-//!
-//! - **Submission pipeline**: validated `ExchangeOrder` → risk
-//!   pre-check hook → `gw_order_id` assignment (monotonic counter, the
-//!   shell leases blocks from the platform sequence facility) → routing
-//!   by order type
-//!   (ME direct / OMS peg / SOR external). See DESIGN.md §2.
-//!   **Cross-service seam (open):** the Ex8:Risk pre-check
-//!   (`POST /v1/authorize` with `exchange8::contracts::risk::AuthorizeRequest`
-//!   = the plain `ExchangeOrder`, sync, <5 ms budget, fail-closed on
-//!   `RiskUnavailable`) is NOT yet mounted by Ex8:Risk (its router carries
-//!   no `/v1/authorize` route); the call site here stays the documented
-//!   seam — `route_order` performs shape validation only. Wiring the real
-//!   call is deferred until Risk mounts the endpoint (design
-//!   `sentin8-exchange8-risk-technical-design.md` §7: the identity is this
-//!   service's own workload certificate).
-//! - **Cancel-on-disconnect**: on session disconnect, every live
-//!   order of that connection is cancelled (ME `CancelAllForConnection`).
-//! - **Vendor/on-behalf-of**: OnBehalfOfCompID (115) resolution — a
-//!   vendor session submits on behalf of the beneficiary firm; the
-//!   beneficiary is stamped into the order for STP/risk attribution.
-//! - **FIX 5.0**: version negotiation — FIX 4.2 (default) vs 5.0
-//!   (FIXT 1.1 transport, 50=BeginString) accepted per session.
-//!
-//! Design: `design/sentin8-exchange8-gateway-technical-design.md` §4,
-//! `design/sentin8-exchange8-connectivity-operations-technical-design.md` §2.
+// Ex8:Gateway submission pipeline + session features.
+//
+// - **Submission pipeline**: validated `ExchangeOrder` → risk
+//   pre-check hook → `gw_order_id` assignment (monotonic counter, the
+//   shell leases blocks from the platform sequence facility) → routing
+//   by order type
+//   (ME direct / OMS peg / SOR external). See DESIGN.md §2.
+//   **Cross-service seam (open):** the Ex8:Risk pre-check
+//   (`POST /v1/authorize` with `exchange8::contracts::risk::AuthorizeRequest`
+//   = the plain `ExchangeOrder`, sync, <5 ms budget, fail-closed on
+//   `RiskUnavailable`) is NOT yet mounted by Ex8:Risk (its router carries
+//   no `/v1/authorize` route); the call site here stays the documented
+//   seam — `route_order` performs shape validation only. Wiring the real
+//   call is deferred until Risk mounts the endpoint (design
+//   `sentin8-exchange8-risk-technical-design.md` §7: the identity is this
+//   service's own workload certificate).
+// - **Cancel-on-disconnect**: on session disconnect, every live
+//   order of that connection is cancelled (ME `CancelAllForConnection`).
+// - **Vendor/on-behalf-of**: OnBehalfOfCompID (115) resolution — a
+//   vendor session submits on behalf of the beneficiary firm; the
+//   beneficiary is stamped into the order for STP/risk attribution.
+// - **FIX 5.0**: version negotiation — FIX 4.2 (default) vs 5.0
+//   (FIXT 1.1 transport, 50=BeginString) accepted per session.
+//
+// Design: `design/sentin8-exchange8-gateway-technical-design.md` §4,
+// `design/sentin8-exchange8-connectivity-operations-technical-design.md` §2.
 
 use exchange8::contracts::order::{ExchangeOrder, OrdType};
 
