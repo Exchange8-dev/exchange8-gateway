@@ -78,7 +78,7 @@ graph TD
     GW -- "ExchangeOrder dispatch" --> ME2
     GW -- "pegged route" --> OMS2
     GW -- "strategy + ex_destination route" --> SOR2
-    GW -- "risk pre-check hook (pipeline step 4)" -.-> RISK2
+    GW -."risk pre-check hook (pipeline step 4)".-> RISK2
 ```
 
 Container view — the service internals grouped by layer:
