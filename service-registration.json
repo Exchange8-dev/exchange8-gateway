@@ -2,7 +2,11 @@
   "vertical": "exchange8",
   "services": [
     {
-      "service_type": "exchange8:gateway"
+      "service_type": "exchange8:gateway",
+      "telemetry_property": {
+        "slug": "gateway",
+        "name": "Exchange8:Gateway Telemetry"
+      }
     }
   ]
 }

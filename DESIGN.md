@@ -134,7 +134,6 @@ platform workers (outbox relay — boot step 8b, audit pusher — boot step 8c)
 in-process; the gateway never duplicates them. The state closure additionally
 spawns the service's own runtime wiring (`runtime_wiring::spawn_tasks`): the
 logon key gate arm, the FIX/OUCH TLS acceptor tasks, and the retention Cron
-schedule registration. The mimalloc global allocator covers all of them since
 they are binary-level tasks, not separate processes.
 
 Components:

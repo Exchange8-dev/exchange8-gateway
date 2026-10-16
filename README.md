@@ -37,7 +37,6 @@ Exchange8:SOR.
 Exchange8:Gateway is a Rust axum binary built on the shared `sentin8::shell`
 platform crate (Sentin8 Shell): service self-registration
 (`--print-registration`), the capped PostgreSQL pool, the health endpoint,
-the Sentin8:Policy (Shield) admin API mount, the mimalloc global allocator,
 and graceful drain are provided by the shell; the service adds its HTTP
 routes and hosts the FIX/OUCH/REST protocol cores. HTTP requests run the
 standard 8-step authorization pipeline (bearer verify → tenant resolve →
@@ -183,7 +182,6 @@ Key responsibilities by module:
 - **Concurrency.** Each FIX connection is owned by one task (sequence
   counters are per-session, never shared); shell-level workers (bus
   consumers, session supervisors, purge jobs) are in-process tokio tasks
-  under the binary-wide mimalloc allocator. The database pool is capped
   via the platform helper so a burst of sessions cannot exhaust
   PostgreSQL connections.
 - **Rejected alternatives.**
