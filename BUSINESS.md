@@ -1,4 +1,4 @@
-# BUSINESS.md: Exchange8:Gateway — Business Requirements & Functionality
+# Exchange8:Gateway — Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Exchange8:Gateway **does for the business**. For architecture read `README.md`;
