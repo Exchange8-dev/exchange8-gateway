@@ -26,6 +26,7 @@ mod exec_report;
 mod handlers;
 mod ouch;
 mod registration;
+mod openapi;
 mod rest_api;
 mod runtime_wiring;
 mod session;

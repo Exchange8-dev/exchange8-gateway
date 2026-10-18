@@ -75,6 +75,17 @@ pub struct ConnectionResponse {
     pub price_protection: String,
     pub risk_bypass: bool,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/connections",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "gateway",
+)]
 
 /// `GET /v1/connections` — list client sessions (RLS-scoped).
 pub async fn list_connections(
@@ -122,6 +133,17 @@ pub struct SeqStateResponse {
     pub out_seq: i64,
     pub trace_enabled: bool,
 }
+#[utoipa::path(
+    get,
+    path = "/v1/connections/{id}/seq",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "gateway",
+)]
 
 /// `GET /v1/connections/{id}/seq` — persisted FIX sequence counters.
 pub async fn get_seq_state(
@@ -160,6 +182,17 @@ pub struct SeqResetRequest {
     /// Reset both counters to 1.
     pub to: Option<i64>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/connections/{id}/seq-reset",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "gateway",
+)]
 
 /// `POST /v1/connections/{id}/seq-reset` — admin sequence reset
 /// (the platform spec seq reset parity; design §6 admin ops).
@@ -307,6 +340,17 @@ pub mod admin_pages {
         }
     }
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/ui/{page}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "exchange8-admin",
+)]
 
 /// `GET /v1/admin/ui/{page}` — the RFW page definition (Dash renders it;
 /// gated by the page's declared admin scope).
@@ -327,6 +371,17 @@ pub async fn admin_ui_page(
         .map(axum::Json)
         .ok_or((StatusCode::NOT_FOUND, format!("no admin ui page '{page}'")))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/admin/sessions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "exchange8-admin",
+)]
 
 /// `POST /v1/admin/sessions/{id}/stop` — admin session stop (design §4.5
 /// `sessions` page action; the runtime registry delivers the logout).
@@ -385,6 +440,17 @@ pub async fn stop_session(
         serde_json::json!({ "id": conn_id, "stopped": true }),
     ))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/messages",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "exchange8-admin",
+)]
 
 /// `GET /v1/admin/messages` — the resend-window store rows (the `messages`
 /// page data endpoint; retention-purged per DESIGN.md §6).
@@ -452,6 +518,17 @@ pub struct ScheduleRunRequest {
     #[allow(dead_code)]
     pub idempotency_key: Option<String>,
 }
+#[utoipa::path(
+    post,
+    path = "/v1/internal/schedules/run",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "gateway-internal",
+)]
 
 pub async fn internal_schedules_run(
     State(state): State<Arc<AppState>>,
