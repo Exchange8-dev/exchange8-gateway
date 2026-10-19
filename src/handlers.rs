@@ -12,6 +12,7 @@
 //! Design: `design/sentin8-exchange8-gateway-technical-design.md` §4.1
 //! + data-model doc §3.2 (GW-owned `gateway.connection`).
 
+use utoipa::ToSchema;
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
@@ -62,7 +63,7 @@ fn err_db_json(e: serde_json::Error) -> (StatusCode, String) {
     err_db(e)
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
 pub struct ConnectionResponse {
     pub id: Uuid,
     pub env_id: Uuid,
@@ -79,7 +80,7 @@ pub struct ConnectionResponse {
     get,
     path = "/v1/connections",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "FIX connections", body = Vec<ConnectionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -124,7 +125,7 @@ pub async fn list_connections(
     Ok(Json(rows))
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
 pub struct SeqStateResponse {
     pub id: Uuid,
     pub env_id: Uuid,
@@ -137,7 +138,7 @@ pub struct SeqStateResponse {
     get,
     path = "/v1/connections/{id}/seq",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Sequence state", body = SeqStateResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -177,7 +178,7 @@ pub async fn get_seq_state(
         .ok_or((StatusCode::NOT_FOUND, "connection not found".into()))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct SeqResetRequest {
     /// Reset both counters to 1.
     pub to: Option<i64>,
@@ -186,7 +187,7 @@ pub struct SeqResetRequest {
     post,
     path = "/v1/connections/{id}/seq-reset",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Sequence reset", body = SeqStateResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -344,7 +345,7 @@ pub mod admin_pages {
     get,
     path = "/v1/admin/ui/{page}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page definition", body = AdminRfwPage),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -358,7 +359,7 @@ pub async fn admin_ui_page(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     Path(page): Path<String>,
-) -> Result<axum::Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<axum::Json<AdminRfwPage>, (StatusCode, String)> {
     let a = sentin8::shell::verify_token(&state.config, &headers).await?;
     sentin8::shell::policy::require(
         &state.admin.policy,
@@ -368,6 +369,7 @@ pub async fn admin_ui_page(
     )
     .await?;
     admin_pages::page(&page)
+        .map(AdminRfwPage)
         .map(axum::Json)
         .ok_or((StatusCode::NOT_FOUND, format!("no admin ui page '{page}'")))
 }
@@ -375,7 +377,7 @@ pub async fn admin_ui_page(
     post,
     path = "/v1/admin/sessions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Session stopped", body = SessionStopAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -389,7 +391,7 @@ pub async fn stop_session(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     Path(conn_id): Path<Uuid>,
-) -> Result<axum::Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<axum::Json<SessionStopAck>, (StatusCode, String)> {
     let a = sentin8::shell::verify_token(&state.config, &headers).await?;
     sentin8::shell::policy::require(
         &state.admin.policy,
@@ -436,15 +438,16 @@ pub async fn stop_session(
     // Deliver the stop signal; a session not currently connected is a
     // no-op stop (the state table already carries the persisted counters).
     crate::runtime_wiring::stop_session(conn_id).await;
-    Ok(axum::Json(
-        serde_json::json!({ "id": conn_id, "stopped": true }),
-    ))
+    Ok(axum::Json(SessionStopAck {
+        id: conn_id,
+        stopped: true,
+    }))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/messages",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "FIX journal rows", body = Vec<FixMessageResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -486,7 +489,7 @@ pub async fn list_fix_messages(
     Ok(Json(rows))
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
 pub struct FixMessageResponse {
     pub id: uuid::Uuid,
     pub env_id: uuid::Uuid,
@@ -505,7 +508,7 @@ pub struct FixMessageResponse {
 /// runs on this service's OWN schema (owner-side maintenance - the
 /// retention window spans all envs, so the purge resolves envs from the
 /// owner-side helper; the schema is service-private).
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ScheduleRunRequest {
     pub schedule_id: Option<Uuid>,
     pub schedule_type: String,
@@ -518,11 +521,41 @@ pub struct ScheduleRunRequest {
     #[allow(dead_code)]
     pub idempotency_key: Option<String>,
 }
+/// Session-stop ack (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct SessionStopAck {
+    /// The stopped session id.
+    pub id: uuid::Uuid,
+    /// Always `true`.
+    pub stopped: bool,
+}
+
+/// Cron proxy-back ack (`{schedule_type, env_id, purged}` - gateway's own
+/// key set, distinct from refdata's `{advanced}`).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ScheduleRunResponse {
+    /// The schedule_type that ran.
+    pub schedule_type: String,
+    /// The env served.
+    pub env_id: uuid::Uuid,
+    /// Dropped FIX frames purged.
+    pub purged: u64,
+}
+
+/// The RFW page-definition document (transparent renderer-contract JSON).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[serde(transparent)]
+pub struct AdminRfwPage(
+    /// The RFW page-definition document.
+    pub serde_json::Value,
+);
+
 #[utoipa::path(
     post,
     path = "/v1/internal/schedules/run",
+    request_body = ScheduleRunRequest,
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Schedule advanced", body = ScheduleRunResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -534,7 +567,7 @@ pub async fn internal_schedules_run(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     axum::extract::Json(body): axum::extract::Json<ScheduleRunRequest>,
-) -> Result<axum::Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<axum::Json<ScheduleRunResponse>, (StatusCode, String)> {
     let a = sentin8::shell::verify_token(&state.config, &headers).await?;
     sentin8::shell::policy::require(
         &state.admin.policy,
@@ -587,11 +620,11 @@ pub async fn internal_schedules_run(
         .map_err(err_db)?;
         ctx.commit().await.map_err(err_db)?;
     }
-    Ok(axum::Json(serde_json::json!({
-        "schedule_type": body.schedule_type,
-        "env_id": body.env_id,
-        "purged": purged,
-    })))
+    Ok(axum::Json(ScheduleRunResponse {
+        schedule_type: body.schedule_type,
+        env_id: body.env_id,
+        purged,
+    }))
 }
 
 // ---------------------------------------------------------------------------
