@@ -15,16 +15,16 @@
 //   = the plain `ExchangeOrder`, sync, <5 ms budget, fail-closed on
 //   `RiskUnavailable`) is NOT yet mounted by Exchange8:Risk (its router carries
 //   no `/v1/authorize` route); the call site here stays the documented
-//   seam — `route_order` performs shape validation only. Wiring the real
+//   seam - `route_order` performs shape validation only. Wiring the real
 //   call is deferred until Risk mounts the endpoint (design
 //   `sentin8-exchange8-risk-technical-design.md` §7: the identity is this
 //   service's own workload certificate).
 // - **Cancel-on-disconnect**: on session disconnect, every live
 //   order of that connection is cancelled (ME `CancelAllForConnection`).
-// - **Vendor/on-behalf-of**: OnBehalfOfCompID (115) resolution — a
+// - **Vendor/on-behalf-of**: OnBehalfOfCompID (115) resolution - a
 //   vendor session submits on behalf of the beneficiary firm; the
 //   beneficiary is stamped into the order for STP/risk attribution.
-// - **FIX 5.0**: version negotiation — FIX 4.2 (default) vs 5.0
+// - **FIX 5.0**: version negotiation - FIX 4.2 (default) vs 5.0
 //   (FIXT 1.1 transport, 50=BeginString) accepted per session.
 //
 // Design: `design/sentin8-exchange8-gateway-technical-design.md` §4,
@@ -362,7 +362,7 @@ mod tests {
         c.on_submitted(7, 2);
         c.on_submitted(9, 3);
         assert_eq!(c.live_count(7), 2);
-        // Order 1 done (filled) — only 2 remains live.
+        // Order 1 done (filled) - only 2 remains live.
         c.on_done(7, 1);
         assert_eq!(c.live_count(7), 1);
         // Connection 7 drops → cancel order 2 only.

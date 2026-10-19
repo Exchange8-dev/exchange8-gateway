@@ -15,11 +15,11 @@ use sentin8::registration::{
     RelationDecl, ScheduleDecl, SqlMigration,
 };
 
-/// The Shield text of the declared scope-mirror set — public so the
+/// The Shield text of the declared scope-mirror set - public so the
 /// policy wiring tests assert against the REAL seed.
 ///
 /// Coverage contract (policy wiring tests): EVERY action the handlers
-/// evaluate has a permit — the connection read/write vocabulary, the
+/// evaluate has a permit - the connection read/write vocabulary, the
 /// cron proxy-back's purge action (the cron workload's declared
 /// `sentin8:cron:write` is the admitted scope), and the platform-admin trio
 /// rides every surface.
@@ -41,14 +41,14 @@ permit(principal, action == Action::\"exchange8:gateway:fix-message:purge\", res
 
 /// Default declarative policy set (Sentin8:Policy design §3.2/§3.4,
 /// seeded by `vertical enroll` as `origin='platform'`, `mode='enforced'`):
-/// action-granular scope permits over the LIVE effective scope set — the
+/// action-granular scope permits over the LIVE effective scope set - the
 /// exact mirror of the gates this service's handlers evaluate in step 5
 /// (policy design §4.3; see DESIGN.md §4). The enforced step-5 evaluation
 /// is the only request-time gate; shadow is the emergency one-UPDATE
 /// rollback lever only.
 const POLICIES: &[PolicySetDecl] = &[PolicySetDecl {
     policy_set_name: "scope-mirror",
-    description: "Action-granular scope permits for exchange8:gateway over the LIVE effective scope set. Enforced — step 5 is the only gate.",
+    description: "Action-granular scope permits for exchange8:gateway over the LIVE effective scope set. Enforced - step 5 is the only gate.",
     // Shield text lives in SCOPE_MIRROR_POLICIES (single source).
     policies: SCOPE_MIRROR_POLICIES,
     schema: None,
@@ -56,7 +56,7 @@ const POLICIES: &[PolicySetDecl] = &[PolicySetDecl {
     default_enabled: true,
 }];
 
-/// Default ReBAC relation tuples (design §3.1c) — none declared by this
+/// Default ReBAC relation tuples (design §3.1c) - none declared by this
 /// service today; env admins author their own graph via the relations
 /// admin API.
 const RELATIONS: &[RelationDecl] = &[];
@@ -68,7 +68,7 @@ const PG_ROLES: &[PgRole] = &[PgRole {
     // Grants live in the exchange8 vertical database only (principles §6.6
     // database-per-vertical, schema-per-service).
     database: "exchange8",
-    // This service owns all its reads — no cross-schema grants.
+    // This service owns all its reads - no cross-schema grants.
     cross_schema_grants: &[],
 }];
 
@@ -132,18 +132,18 @@ const ADMIN_UI_PAGES: &[AdminUiPage] = &[
 /// workload this service presents a certificate for; `vertical enroll` upserts the
 /// rows so the fail-closed registry map admits the registration. Scopes use the
 /// full vocabulary form:
-/// - `exchange8:gateway` / `gateway` — the service's own client (both
+/// - `exchange8:gateway` / `gateway` - the service's own client (both
 ///   spellings granted; runtime call sites use the bare short name, the
 ///   map looks up the exact workload): bus produce/consume + the
 ///   shared certificate identity.
-/// - `exchange8:gateway-policy` / `gateway-policy` — Shield hot-reload
+/// - `exchange8:gateway-policy` / `gateway-policy` - Shield hot-reload
 ///   consumer + stat emitter pair.
-/// - `gateway-audit` — shell audit-journal pusher workload (§6.8; boot 8c).
-/// - `gateway-cron` — the retention purge schedule self-registration (the
+/// - `gateway-audit` - shell audit-journal pusher workload (§6.8; boot 8c).
+/// - `gateway-cron` - the retention purge schedule self-registration (the
 ///   refdata/secrets precedents): the boot registers the recurring
 ///   `fix-message-purge` schedule with Sentin8:Cron; Cron's ticker
 ///   proxy-back authenticates the dedicated `gateway-cron` workload.
-/// - `exchange8-gateway-tls` — database-free HostContextResolver resolve workload
+/// - `exchange8-gateway-tls` - database-free HostContextResolver resolve workload
 ///   (TLS-RLS-4: `GET /v1/resolve/hostname`, scope
 ///   `sentin8:sys:instances:read`).
 const M2M_GRANTS: &[M2mGrant] = &[
@@ -229,7 +229,7 @@ pub fn print(section: Option<String>) -> anyhow::Result<()> {
         relations: RELATIONS,
         event_triggers: &[],
         // Retention purge (SDD §2.4): the recurring `fix-message-purge`
-        // schedule — daily 05:30 UTC (before market open). Provisioned at
+        // schedule - daily 05:30 UTC (before market open). Provisioned at
         // enroll; the fire proxy-calls this service's
         // `/v1/internal/schedules/run` (constants in
         // `runtime_wiring::retention` keep the contract honest).

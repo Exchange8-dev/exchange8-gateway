@@ -3,20 +3,20 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Exchange8:Gateway FIX 4.2 session engine — sequence/resend/gap-fill semantics
+//! Exchange8:Gateway FIX 4.2 session engine - sequence/resend/gap-fill semantics
 //! (platform spec, DB-backed counters per design).
 //!
 //! Pure protocol state machine over an abstract message transport: the tokio
 //! shell supplies the socket/streams and the `gateway.fix_session_state` /
 //! `gateway.fix_message` persistence callbacks.
 //!
-//! Semantics (design `sentin8-exchange8-gateway-technical-design.md` §4.1–4.2):
+//! Semantics (design `sentin8-exchange8-gateway-technical-design.md` §4.1-4.2):
 //! - Logon(35=A) must arrive first; `ResetSeqNumFlag(141)=Y` restarts both
 //!   counters at 1. Credentials are verified by the shell (Sentin8 session
 //!   key) before `logon()` is called.
 //! - Incoming gap (`seq > in+1`): queue the message, emit ResendRequest(2)
 //!   for the missing range.
-//! - Low seq (non-PossDup): teardown (logout) — platform spec.
+//! - Low seq (non-PossDup): teardown (logout) - platform spec.
 //! - PossDup(43=Y) re-delivery of an already-processed seq is dropped.
 //! - Resend serving wraps admin messages as SeqReset-GapFill(4) and app
 //!   messages with PossDupFlag=Y; `store_replay` is the shell's lookup.
@@ -58,7 +58,7 @@ pub struct FixSession {
     in_seq: u64,
     /// Next outbound sequence number.
     out_seq: u64,
-    /// Negotiated heartbeat interval (seconds, clamped 10–120).
+    /// Negotiated heartbeat interval (seconds, clamped 10-120).
     pub heart_bt_int: u32,
     /// Messages received during an inbound gap, replayed after the gap fills.
     gap_queue: Vec<FixMessage>,
@@ -219,7 +219,7 @@ impl FixSession {
                 }
             }
             mt::REJECT => {
-                // Session-level reject from the peer — log only.
+                // Session-level reject from the peer - log only.
             }
             _ => {
                 // Application message: deliver to the business layer.
@@ -282,7 +282,7 @@ impl FixSession {
             } else if seq > self.in_seq {
                 remaining.push(m);
             }
-            // seq < in_seq: already covered by the gap fill — drop.
+            // seq < in_seq: already covered by the gap fill - drop.
         }
         self.gap_queue = remaining;
     }
@@ -344,7 +344,7 @@ impl FixSession {
         actions
     }
 
-    /// Enqueue without advancing `out_seq` — used for resend traffic which
+    /// Enqueue without advancing `out_seq` - used for resend traffic which
     /// must preserve original sequence numbers.
     fn enqueue_no_stamp(&mut self, msg: FixMessage, out: &mut Vec<SessionAction>) {
         out.push(SessionAction::Send(msg));
@@ -437,7 +437,7 @@ mod tests {
     #[test]
     fn reset_seq_num_flag_restarts_counters() {
         // A mid-life session (our out_seq persisted at 55): the peer sends a
-        // ResetSeqNum logon which restarts BOTH streams at 1 — the logon
+        // ResetSeqNum logon which restarts BOTH streams at 1 - the logon
         // itself is seq 1 of the new numbering, and our reply is our seq 1.
         let mut s = FixSession::new("EXCH".into(), "CLIENT".into(), 55, 55);
         s.on_message(&logon(1, true, 30));

@@ -164,7 +164,7 @@
         "tags": [
           "exchange8-admin"
         ],
-        "summary": "`GET /v1/admin/messages` — the resend-window store rows (the `messages`\npage data endpoint; retention-purged per DESIGN.md §6).",
+        "summary": "`GET /v1/admin/messages` - the resend-window store rows (the `messages`\npage data endpoint; retention-purged per DESIGN.md §6).",
         "operationId": "list_fix_messages",
         "responses": {
           "200": {
@@ -827,7 +827,7 @@
         "tags": [
           "exchange8-admin"
         ],
-        "summary": "`POST /v1/admin/sessions/{id}/stop` — admin session stop (design §4.5\n`sessions` page action; the runtime registry delivers the logout).",
+        "summary": "`POST /v1/admin/sessions/{id}/stop` - admin session stop (design §4.5\n`sessions` page action; the runtime registry delivers the logout).",
         "operationId": "stop_session",
         "responses": {
           "200": {
@@ -876,7 +876,7 @@
         "tags": [
           "exchange8-admin"
         ],
-        "summary": "`GET /v1/admin/ui/{page}` — the RFW page definition (Dash renders it;\ngated by the page's declared admin scope).",
+        "summary": "`GET /v1/admin/ui/{page}` - the RFW page definition (Dash renders it;\ngated by the page's declared admin scope).",
         "operationId": "admin_ui_page",
         "responses": {
           "200": {
@@ -902,7 +902,7 @@
         "tags": [
           "gateway"
         ],
-        "summary": "`GET /v1/connections` — list client sessions (RLS-scoped).",
+        "summary": "`GET /v1/connections` - list client sessions (RLS-scoped).",
         "operationId": "list_connections",
         "responses": {
           "200": {
@@ -928,7 +928,7 @@
         "tags": [
           "gateway"
         ],
-        "summary": "`GET /v1/connections/{id}/seq` — persisted FIX sequence counters.",
+        "summary": "`GET /v1/connections/{id}/seq` - persisted FIX sequence counters.",
         "operationId": "get_seq_state",
         "responses": {
           "200": {
@@ -954,7 +954,7 @@
         "tags": [
           "gateway"
         ],
-        "summary": "`POST /v1/connections/{id}/seq-reset` — admin sequence reset\n(the platform spec seq reset parity; design §6 admin ops).",
+        "summary": "`POST /v1/connections/{id}/seq-reset` - admin sequence reset\n(the platform spec seq reset parity; design §6 admin ops).",
         "operationId": "seq_reset",
         "responses": {
           "200": {

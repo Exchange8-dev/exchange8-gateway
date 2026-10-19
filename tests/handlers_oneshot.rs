@@ -7,7 +7,7 @@
 //!
 //! Drives the REAL router through `tower::ServiceExt::oneshot`: route
 //! mounting, the authorization pipeline (bearer → scope), status codes,
-//! and the JSON error envelope — without a database. DB-free guarantee:
+//! and the JSON error envelope - without a database. DB-free guarantee:
 //! every data-path handler calls `require_any_scope` BEFORE the first
 //! pool access, so a bearer-less request never reaches `state.pool`.
 //!
@@ -15,7 +15,7 @@
 //! + the scope matrices inside `handlers.rs` (see DESIGN.md §9).
 //!
 //! The gateway crate is bin-only, so the handler modules are pulled in
-//! via `#[path]` — the same pattern as trade8's desk tests. The sibling
+//! via `#[path]` - the same pattern as trade8's desk tests. The sibling
 //! modules the handlers reference (`crate::runtime_wiring`) ride the same
 //! includes so the `crate::` paths resolve identically to the binary.
 
@@ -125,7 +125,7 @@ fn req(method: &str, uri: &str) -> Request<Body> {
         .unwrap()
 }
 
-/// 1 — every route rejects a bearer-less request with 401 (auth pipeline
+/// 1 - every route rejects a bearer-less request with 401 (auth pipeline
 /// before any DB work). Includes a Path-extractor route to prove `{id}`
 /// extraction participates normally.
 #[tokio::test]
@@ -155,7 +155,7 @@ async fn every_route_rejects_unauthenticated_with_401() {
     }
 }
 
-/// 2 — wrong-method on an existing path → 405 (route table shape check).
+/// 2 - wrong-method on an existing path → 405 (route table shape check).
 #[tokio::test]
 async fn wrong_method_gets_405_not_404() {
     let app = router();
@@ -163,7 +163,7 @@ async fn wrong_method_gets_405_not_404() {
     assert_eq!(res.status(), StatusCode::METHOD_NOT_ALLOWED);
 }
 
-/// 3 — unmatched path → 404.
+/// 3 - unmatched path → 404.
 #[tokio::test]
 async fn unknown_path_gets_404() {
     let app = router();
@@ -171,7 +171,7 @@ async fn unknown_path_gets_404() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-/// 4 — error envelope: plain-text auth message (never SQL internals).
+/// 4 - error envelope: plain-text auth message (never SQL internals).
 #[tokio::test]
 async fn unauthenticated_error_envelope_is_plain_text_401() {
     let app = router();
@@ -185,7 +185,7 @@ async fn unauthenticated_error_envelope_is_plain_text_401() {
     );
 }
 
-/// 5 — the RFW page definitions mount: bearer-less requests on every slug
+/// 5 - the RFW page definitions mount: bearer-less requests on every slug
 /// (declared or not) hit the auth gate BEFORE the route/page resolution.
 #[tokio::test]
 async fn admin_ui_pages_are_mounted() {
@@ -204,7 +204,7 @@ async fn admin_ui_pages_are_mounted() {
     }
 }
 
-/// 6 — the cron proxy-back retention fire target is mounted and gated.
+/// 6 - the cron proxy-back retention fire target is mounted and gated.
 #[tokio::test]
 async fn cron_proxy_back_route_is_mounted() {
     let app = router();

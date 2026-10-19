@@ -8,7 +8,7 @@ BFF-proxied REST/WebSocket order shapes), runs the FIX session protocol
 (logon, sequence integrity, resends, heartbeat, logout) as a pure state
 machine, and converts downstream matching-engine lifecycle events into FIX
 ExecutionReports. Every client-facing order goes out through a normalized
-order model (`ExchangeOrder`) that routes by order type — limit/market to
+order model (`ExchangeOrder`) that routes by order type - limit/market to
 Exchange8:ME, pegged to the Exchange8:OMS peg supervisor, strategy-with-destination to
 Exchange8:SOR.
 
@@ -89,33 +89,33 @@ graph TD
 
 Key responsibilities by module:
 
-- `session.rs` — the FIX 4.2 protocol state machine: logon
+- `session.rs` - the FIX 4.2 protocol state machine: logon
   negotiation/reset, in-order delivery, gap queue + ResendRequest, low-seq
   teardown, `PossDup` re-delivery drop, resend serving (GapFill spans for
   admin traffic, `PossDupFlag=43=Y` for app traffic), TestRequest handling.
-- `submission.rs` — the submission pipeline primitives: order-shape
+- `submission.rs` - the submission pipeline primitives: order-shape
   validation and route decision (MatchingEngine / OmsPeg / Sor), the
   monotonic order-id assigner leased from the platform sequence
   facility, the cancel-on-disconnect
   registry, on-behalf-of attribution, and FIX 5.0 BeginString negotiation.
-- `ouch.rs` — the OUCH binary codec for the exchange8 subset (Enter /
+- `ouch.rs` - the OUCH binary codec for the exchange8 subset (Enter /
   Replace / Cancel in; Ordered / Accepted / Rejected / Canceled / Executed /
   CanceledDueToCross out) with fixed little-endian, space-padded layouts.
-- `exec_report.rs` — ME lifecycle events → FIX ExecutionReport field
+- `exec_report.rs` - ME lifecycle events → FIX ExecutionReport field
   selection (ExecType 150 / OrdStatus 39 / LeavesQty 151 / CumQty 14 /
   LastQty 32 / LastPx 31).
-- `rest_api.rs` — logon key verification (constant-time compare against
+- `rest_api.rs` - logon key verification (constant-time compare against
   `secret://exchange8/fix/{comp}` key references) and the BFF REST/WS order
   request/response shapes.
-- `handlers.rs` — the RLS-scoped connection-management HTTP API
+- `handlers.rs` - the RLS-scoped connection-management HTTP API
   (list sessions, read sequence state, admin sequence reset) and the
   admin/RFW surface (page definitions `sessions`/`messages`, data
   endpoints, the admin stop action, the Cron proxy-back purge target).
-- `events.rs` — the typed event envelopes (vocabulary constants + identity
+- `events.rs` - the typed event envelopes (vocabulary constants + identity
   block + builders) and the audit-journal writers: every lifecycle/order
   write pairs its outbox row in the same transaction (outbox-first), and
   admin mutations journal audit rows whose pusher the shell provides.
-- `runtime_wiring.rs` — the binary's runtime wiring: the FIX + OUCH TLS
+- `runtime_wiring.rs` - the binary's runtime wiring: the FIX + OUCH TLS
   acceptor tasks (one connection task per accepted client), the logon key
   gate arm (`SessionKeyRegistry` from the secret-reference chain), the
   session-supervisor registry (admin stop delivery), the submission
@@ -124,43 +124,43 @@ Key responsibilities by module:
 
 ## 4. Key Traits and Data Structures
 
-- `FixSession` — the per-connection FIX 4.2 state machine
+- `FixSession` - the per-connection FIX 4.2 state machine
   (`AwaitingLogon → Established → LoggingOut → Disconnected`). Carries the
   CompID pair, the persisted in/out sequence counters, the clamped
   heartbeat interval, the inbound gap queue, and a pending resend range.
   Produces `SessionAction`s (`Send`, `Disconnect`) plus the app messages
   now deliverable to the business layer.
-- `SessionKeyRegistry` / `LogonDecision` — the FIX logon credentials
+- `SessionKeyRegistry` / `LogonDecision` - the FIX logon credentials
   verifier: CompID → Sentin8-issued session key, constant-time comparison,
   three outcomes (Accepted / UnknownCompId / BadKey) with no factor
   disclosure.
-- `Route` / `SubmitReject` — the routing decision over a normalized
+- `Route` / `SubmitReject` - the routing decision over a normalized
   `ExchangeOrder` (direct ME, OMS peg, SOR external) and the pre-execution
   rejection reasons.
-- `OrderIdAssigner` — a leased-block counter: the shell leases ranges from
+- `OrderIdAssigner` - a leased-block counter: the shell leases ranges from
   the platform sequence facility and the assigner hands out
   monotonic `gw_order_id`s; exhaustion signals a refill.
-- `CancelOnDisconnect` — the live-order registry per connection; on
+- `CancelOnDisconnect` - the live-order registry per connection; on
   disconnect it yields the full set of live order ids to cancel.
-- `OnBehalfOf` / `Attribution` — vendor/beneficiary pair resolution: the
+- `OnBehalfOf` / `Attribution` - vendor/beneficiary pair resolution: the
   beneficiary owns STP/risk attribution, the vendor session is the report
   target.
-- `FixVersion` — BeginString (tag 8) negotiation between FIX 4.2 and FIX
+- `FixVersion` - BeginString (tag 8) negotiation between FIX 4.2 and FIX
   5.0 / FIXT 1.1 (with the 5.0 `NextExpectedMsgSeqNum (789)` capability
   flag).
-- `ExecReport` — the converted report field set and its FIX body fragment
+- `ExecReport` - the converted report field set and its FIX body fragment
   serializer (tag order, SOH-separated).
-- `RestOrderRequest` / `CryptoRestOrder` / `CryptoWsOrderEvent` — the BFF
+- `RestOrderRequest` / `CryptoRestOrder` / `CryptoWsOrderEvent` - the BFF
   REST/WebSocket order shapes with their domain validation
   (crypto quantities/prices are integer-scaled at ×10⁸).
 - OUCH message structs (`EnterOrder`, `ReplaceOrder`, `CancelOrder`,
-  `OuchOutbound`) — fixed-layout codec with byte-level side/visibility,
+  `OuchOutbound`) - fixed-layout codec with byte-level side/visibility,
   TIF, and capacity mapping to the normalized order model.
 
 ## 5. Rationale, Trade-offs, and Alternatives
 
 - **Pattern choices.** The FIX session layer is a pure state machine over
-  an abstract transport — the module knows nothing about tokio or sockets —
+  an abstract transport - the module knows nothing about tokio or sockets -
   so sequence semantics are exhaustively unit-testable without network or
   database, and the transport shell can evolve independently. The same
   pattern applies to the OUCH codec and exec-report conversion.
@@ -169,11 +169,11 @@ Key responsibilities by module:
   (RLS-forced) instead of process-local files or mmap images: sessions
   survive restarts and instance failover, and sequence state is auditable
   per connection. The trade-off is one indexed read/write per message
-  versus instant in-memory access — acceptable at order-entry rates and
+  versus instant in-memory access - acceptable at order-entry rates and
   required for durability.
 - **Gap-fill-only resend.** Resend serving collapses admin (non-app)
   messages into `SeqReset-GapFill` spans and replays app messages with
-  `PossDupFlag=43=Y`. A purged store window gap-fills forward and stops —
+  `PossDupFlag=43=Y`. A purged store window gap-fills forward and stops -
   a documented limitation traded for bounded store retention rather than an
   unbounded negative-ack model.
 - **Dispatching.** Resend serving takes a store-lookup callback rather than
@@ -185,14 +185,14 @@ Key responsibilities by module:
   via the platform helper so a burst of sessions cannot exhaust
   PostgreSQL connections.
 - **Rejected alternatives.**
-  - CompID-only logon trust — rejected: logon credentials must be
+  - CompID-only logon trust - rejected: logon credentials must be
     Sentin8-issued session keys verified by constant-time comparison; the
     connection row alone is not an authenticator.
-  - Plaintext key storage in the connection table — rejected; keys are
+  - Plaintext key storage in the connection table - rejected; keys are
     referenced as `secret://exchange8/fix/{comp}` and resolved out-of-band.
-  - Session state in mmap/OS files — rejected in favor of RLS-scoped
+  - Session state in mmap/OS files - rejected in favor of RLS-scoped
     database rows (portable across instances, auditable, purgeable).
-  - A per-message broker round-trip before resend — rejected; the resend
+  - A per-message broker round-trip before resend - rejected; the resend
     range is served synchronously from the message store to preserve
     original sequence numbers.
 
@@ -207,7 +207,7 @@ Invariants:
    (monotonic, auto-advancing `out_seq`); resend traffic is enqueued
    **without** advancing the counter and always carries original sequence
    numbers.
-3. `gateway.fix_message` enforces `UNIQUE (connection_id, seq_no)` —
+3. `gateway.fix_message` enforces `UNIQUE (connection_id, seq_no)` -
    exactly one stored frame per outbound application sequence number.
 4. A `PossDup` delivery below the expected inbound counter is dropped
    silently; a low sequence **without** `PossDup` tears the session down.
@@ -229,7 +229,7 @@ Invariants:
     `fix_session_state` is unique per `(env_id, connection_id)`.
 11. The logon decision never reveals which factor failed
     (UnknownCompId vs BadKey), and key material never persists in any
-    table — only `secret://` references.
+    table - only `secret://` references.
 
 Insecure defaults rejected: no network-location or CompID-only
 authentication; no plaintext session keys; no in-process sequence files;
@@ -242,10 +242,10 @@ plain safe Rust (length check + XOR-accumulate fold).
 ## 7. Unresolved Questions / Future Designs
 
 - The Exchange8:Risk pre-check endpoint (`POST /v1/authorize`) is the documented
-  cross-service seam — Risk's router does not mount it yet; the gateway
+  cross-service seam - Risk's router does not mount it yet; the gateway
   call site stays documented (DESIGN.md §10) until the endpoint exists.
 - The ME ↔ Gateway direct-stream contract (exec-report event delivery into
-  the session transport) — the conversion core is complete; the event
+  the session transport) - the conversion core is complete; the event
   source rides the peer stream contract (DESIGN.md §10).
 - End-to-end FIX conformance tooling against recorded session corpora.
 

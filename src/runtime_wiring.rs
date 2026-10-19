@@ -3,47 +3,47 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Exchange8:Gateway runtime wiring — the tokio transport + worker tasks.
+//! Exchange8:Gateway runtime wiring - the tokio transport + worker tasks.
 //!
 //! Wires the pure protocol cores (`session.rs`, `submission.rs`, `ouch.rs`,
 //! `rest_api.rs`) onto real transports per DESIGN.md §2 (runtime
 //! architecture) and §4.1 (FIX session surface):
 //!
-//! - **FIX 4.2 acceptor task** — owns a dedicated `sentin8::tls::TlsListener`
+//! - **FIX 4.2 acceptor task** - owns a dedicated `sentin8::tls::TlsListener`
 //!   bound to `EXCHANGE8_GATEWAY_FIX_PORT`; one connection task per accepted
 //!   client (DESIGN.md §7 task topology). TLS terminates in-process via the
 //!   platform `sentin8_tls` library (PQ-exclusive; Sentin8:Proxy is the SNI
 //!   front door).
-//! - **OUCH acceptor task** — the same listener pattern on
+//! - **OUCH acceptor task** - the same listener pattern on
 //!   `EXCHANGE8_GATEWAY_OUCH_PORT`; SoupBinTCP-framed packets decode through
 //!   `ouch::decode_inbound` and join the same submission pipeline. The OUCH
 //!   client identity resolves at the SoupBinTCP Login Request (the same
 //!   `SessionKeyRegistry` verify as FIX).
-//! - **WS order-entry route** — the axum upgrade handler on the shell's
+//! - **WS order-entry route** - the axum upgrade handler on the shell's
 //!   main HTTP/TLS listener (`/ws`, the platform's one bidirectional tier,
 //!   architecture-principles §4.7a).
-//! - **Session lifecycle + order events** — outbox rows written in the same
+//! - **Session lifecycle + order events** - outbox rows written in the same
 //!   transaction as `fix_session_state` / `fix_message` persistence
-//!   (outbox-first — sentin8-outbox design, producer path): the
+//!   (outbox-first - sentin8-outbox design, producer path): the
 //!   `exchange8:gateway:connection:connected|rejected|disconnected` +
 //!   `exchange8:gateway:order:routed|rejected` vocabulary of DESIGN.md §4.
 //!   The typed envelope builders + the audit journal writers live in
 //!   `events.rs` (the refdata convention). The shell's boot step 8b relay
 //!   pushes them to Bus `POST /v1/produce`; this module never duplicates the
 //!   platform relay/journal workers.
-//! - **Retention executor** — the purge policy for `gateway.fix_message`
+//! - **Retention executor** - the purge policy for `gateway.fix_message`
 //!   (the store IS the resend window, DESIGN.md §6). The named Sentin8:Cron
 //!   schedule registers idempotently on `(domain, schedule_type)` at boot via
 //!   the `gateway-cron` workload certificate; its fire proxies back to
 //!   `POST /v1/internal/schedules/run`, which executes the batched per-env
-//!   DELETE on the service's own schema. Scheduling owner is Sentin8:Cron —
+//!   DELETE on the service's own schema. Scheduling owner is Sentin8:Cron -
 //!   no embedded scheduler loop.
 //!
-//! Session state ownership: the `FixSession` is per-connection-task state —
+//! Session state ownership: the `FixSession` is per-connection-task state -
 //! no shared mutable counters across sessions (DESIGN.md §7).
 
 // The oneshot test binary includes this module (for the split/resend/helpers)
-// but never binds sockets or the DB — everything below that serves only the
+// but never binds sockets or the DB - everything below that serves only the
 // binary's runtime tasks is dead there; the binary itself compiles clean.
 #![cfg_attr(test, allow(dead_code))]
 
@@ -67,12 +67,12 @@ use crate::submission::{route_order, Route};
 
 // ── FIX logon credential tags ───────────────────────────────────────────
 
-/// Username (553) — the logon credential tag; the codec's `tag` set has no
+/// Username (553) - the logon credential tag; the codec's `tag` set has no
 /// constant for the logon Username/Password pair, so the session shell
 /// declares them here (the single call site is the logon gate below).
 /// DESIGN.md §4.1 logon handshake.
 pub const TAG_USERNAME: i32 = 553;
-/// Password (554) — carries the Sentin8-issued session key reference.
+/// Password (554) - carries the Sentin8-issued session key reference.
 pub const TAG_PASSWORD: i32 = 554;
 
 /// Our SenderCompID on the FIX wire (all sessions; the peer's TargetCompID
@@ -86,7 +86,7 @@ const GATEWAY_COMP_ID: &str = "EXCHANGE8-GW";
 static KEY_REGISTRY: tokio::sync::RwLock<Option<SessionKeyRegistry>> =
     tokio::sync::RwLock::const_new(None);
 
-/// Snapshot the registry (`None` pre-boot — acceptors reject until armed).
+/// Snapshot the registry (`None` pre-boot - acceptors reject until armed).
 async fn keys() -> Option<SessionKeyRegistry> {
     KEY_REGISTRY.read().await.clone()
 }
@@ -102,17 +102,17 @@ async fn armed_keys() -> SessionKeyRegistry {
 
 /// Resolve every registered session key from the secret backend chain and
 /// arm the constant-time verifier. Keys are out-of-band credentials
-/// (`secret://exchange8/fix/{comp}` — the secret-reference rule, DESIGN.md
+/// (`secret://exchange8/fix/{comp}` - the secret-reference rule, DESIGN.md
 /// §3). One unresolvable reference logs and skips its comp; a failed DB
 /// bootstrap leaves the registry unarmed, which rejects every logon
 /// (fail-closed).
 ///
 /// RLS discipline (§4.3d): the bootstrap is an owner-side maintenance read
-/// spanning every tenant env — rows are read per-env inside transactions
+/// spanning every tenant env - rows are read per-env inside transactions
 /// whose tenant context is set on the SAME connection before the read. The
 /// DISTINCT env list rides the platform relay's SECURITY DEFINER helper
 /// (`public.sentin8_outbox_unrelayed_envs`, platform migrations
-/// public_helpers.sql) applied to this schema's outbox — a gateway has
+/// public_helpers.sql) applied to this schema's outbox - a gateway has
 /// lifecycle outbox rows in every env it has sessions for.
 async fn build_key_registry(pool: &sqlx::PgPool) -> anyhow::Result<()> {
     let envs: Vec<Uuid> =
@@ -142,12 +142,12 @@ async fn build_key_registry(pool: &sqlx::PgPool) -> anyhow::Result<()> {
                     }),
                     Err(e) => tracing::warn!(
                         comp_id = %comp_id, error = %e,
-                        "session key decode failed — comp not armed"
+                        "session key decode failed - comp not armed"
                     ),
                 },
                 Err(e) => tracing::warn!(
                     comp_id = %comp_id, error = %e,
-                    "session key unresolved at boot — comp not armed"
+                    "session key unresolved at boot - comp not armed"
                 ),
             }
         }
@@ -191,7 +191,7 @@ async fn deregister_session(conn_id: Uuid) {
 
 /// Deliver the admin stop signal to a live session (the
 /// `POST /v1/admin/sessions/{id}/stop` handler; design §4.5 admin logout).
-/// A session not currently connected is a no-op — the persisted counters
+/// A session not currently connected is a no-op - the persisted counters
 /// already reflect its state.
 pub async fn stop_session(conn_id: Uuid) {
     let map = sessions_mut().await;
@@ -213,7 +213,7 @@ const OUCH_PORT_ENV: &str = "EXCHANGE8_GATEWAY_OUCH_PORT";
 
 /// Spawn the FIX + OUCH acceptor tasks, arm the logon key gate, and
 /// register the retention Cron schedule. Called from the `with_state`
-/// closure (shell boot step 8 — the platform relay/journal workers are
+/// closure (shell boot step 8 - the platform relay/journal workers are
 /// already running; the HTTP/TLS listener does not block on these tasks).
 pub fn spawn_tasks(core: Arc<AppState>) {
     tokio::spawn(async move {
@@ -225,7 +225,7 @@ pub fn spawn_tasks(core: Arc<AppState>) {
     });
 }
 
-/// The configured protocol port — hard-fail when unset.
+/// The configured protocol port - hard-fail when unset.
 fn protocol_port(env: &str) -> anyhow::Result<u16> {
     std::env::var(env)?
         .parse()
@@ -246,7 +246,7 @@ async fn ouch_acceptor(core: Arc<AppState>) {
 
 /// The shared accept loop (DESIGN.md §7 task topology: one accept task per
 /// protocol port, one connection task per session; the TLS handshake runs
-/// INSIDE the connection task so a stalled peer never delays the acceptor —
+/// INSIDE the connection task so a stalled peer never delays the acceptor -
 /// tls README §6).
 async fn accept_loop(core: Arc<AppState>, port_env: &str) -> anyhow::Result<()> {
     let tls = sentin8::tls::Sentin8Tls::builder()
@@ -285,10 +285,10 @@ async fn accept_loop(core: Arc<AppState>, port_env: &str) -> anyhow::Result<()> 
 /// One FIX client session's life: logon gate → `FixSession` state machine →
 /// in-order app messages → disconnect. Owns exactly one
 /// `gateway.connection` identity (resolved at logon); the state machine is
-/// single-owner — no shared mutable counters across sessions (DESIGN.md §7).
+/// single-owner - no shared mutable counters across sessions (DESIGN.md §7).
 ///
 /// Sequencing contract with the state machine: `FixSession::new` is built
-/// WITHOUT pre-seeded counters — the logon is the first inbound message this
+/// WITHOUT pre-seeded counters - the logon is the first inbound message this
 /// object sees and `ResetSeqNumFlag(141)` governs the fresh counters; the
 /// resumed counters ride the DB write AFTER the server Logon reply is
 /// stamped (invariant 1: persisted counters are authoritative for RECONNECT
@@ -328,14 +328,14 @@ async fn fix_connection(
             buf = rest;
             let Ok(Some(msg)) = FixMessage::parse(&frame) else {
                 // Malformed session framing: structural drop (platform spec).
-                tracing::debug!("gateway: malformed FIX frame — disconnect");
+                tracing::debug!("gateway: malformed FIX frame - disconnect");
                 torn_down = true;
                 break;
             };
             let Some((id, s)) = conn.as_mut() else {
                 // Pre-logon: the Logon(35=A) handshake gates everything.
                 if msg.msg_type() != Some(mt::LOGON) {
-                    tracing::warn!("gateway: non-logon first message — disconnect");
+                    tracing::warn!("gateway: non-logon first message - disconnect");
                     torn_down = true;
                     break;
                 }
@@ -346,7 +346,7 @@ async fn fix_connection(
                         for mut action in actions {
                             match action {
                                 SessionAction::Send(ref mut out) => {
-                                    // Frame + persist BEFORE transmit — the
+                                    // Frame + persist BEFORE transmit - the
                                     // first stamped outbound (the Logon
                                     // reply) rides the counters write.
                                     let frame = out.encode();
@@ -369,7 +369,7 @@ async fn fix_connection(
                         emit_connected(&core, id2, s.remote_comp_id.as_str(), env_id).await;
                         conn = Some((id2, s));
                     }
-                    None => return, // rejected — socket closes
+                    None => return, // rejected - socket closes
                 }
                 continue;
             };
@@ -426,14 +426,14 @@ async fn fix_connection(
 async fn logon_handshake(core: &Arc<AppState>, msg: &FixMessage) -> Option<(Uuid, FixSession)> {
     let username = msg.get(tg::SENDER_COMP_ID).unwrap_or("").to_string();
     let password = msg.get(TAG_PASSWORD).unwrap_or("").to_string();
-    // Unarmed registry = empty registry — every comp id fails the verify
+    // Unarmed registry = empty registry - every comp id fails the verify
     // (fail-closed; build_key_registry arms the real set at boot).
     let registry = armed_keys().await;
     match registry.verify(&username, &password) {
         LogonDecision::Accepted => {}
         reject => {
             tracing::warn!(comp = %username, decision = ?reject, "gateway: logon rejected");
-            // The rejected credential has no resolved tenant yet — the
+            // The rejected credential has no resolved tenant yet - the
             // lifecycle event rides the seed-env nil context and the comp id
             // carries the correlation (runtime session events envelope).
             emit_lifecycle_event(
@@ -508,7 +508,7 @@ async fn logon_handshake(core: &Arc<AppState>, msg: &FixMessage) -> Option<(Uuid
 /// Persist the outbound frame: in ONE same-tx write, advance the persisted
 /// out-counter and store app frames in the resend window (invariants 2+3;
 /// DESIGN.md §3). Returns the connection's env for the follow-up event
-/// emission (None = unresolvable — the connection row was reaped).
+/// emission (None = unresolvable - the connection row was reaped).
 async fn persist_outbound(
     core: &Arc<AppState>,
     conn_id: Uuid,
@@ -598,7 +598,7 @@ async fn submit_new(core: &Arc<AppState>, conn_id: Uuid, msg: &FixMessage) -> bo
             };
             // Outbox-first (§6.7 payload-completeness rule): the routed
             // event carries the full normalized order + the connection
-            // identity — the consumer never needs a read-back.
+            // identity - the consumer never needs a read-back.
             let snapshot = json!({
                 "connection_id": conn_id,
                 "cl_ord_id": order.cl_ord_id,
@@ -741,7 +741,7 @@ async fn emit_event_tx(
 
 /// Fresh identity for a standalone lifecycle emission: the correlation id is
 /// generated per event (no HTTP request context on the FIX/OUCH path), and
-/// the idempotency key IS the correlation id — lifecycle events are never
+/// the idempotency key IS the correlation id - lifecycle events are never
 /// re-delivered within a connection's lifetime.
 fn lifecycle_identity(env_id: Uuid, subject: &str) -> crate::events::EventIdentity {
     let correlation = Uuid::new_v4().to_string();
@@ -754,7 +754,7 @@ fn lifecycle_identity(env_id: Uuid, subject: &str) -> crate::events::EventIdenti
 }
 
 /// Session-lifecycle event for a caller with no resolved tenant (the
-/// pre-connection logon-rejected path). Under seed-env (nil) context — the
+/// pre-connection logon-rejected path). Under seed-env (nil) context - the
 /// rejected credential has no tenant yet; the comp id rides the snapshot.
 async fn emit_lifecycle_event(core: &Arc<AppState>, op: ConnectionOp, snapshot: serde_json::Value) {
     let identity = lifecycle_identity(Uuid::nil(), GATEWAY_COMP_ID);
@@ -801,7 +801,7 @@ async fn emit_disconnected(core: &Arc<AppState>, conn_id: Uuid, comp: &str, _sta
 }
 
 /// Cancel-on-disconnect: on session drop, the connection's LIVE orders are
-/// cancelled (ME `CancelAllForConnection` — business rule 9; DESIGN.md §5).
+/// cancelled (ME `CancelAllForConnection` - business rule 9; DESIGN.md §5).
 /// The ME mirror event rides the SAME stream family; Exchange8:ME's
 /// direct-stream subscriber consumes it.
 async fn cancel_on_disconnect(core: &Arc<AppState>, conn_id: Uuid, comp: &str) {
@@ -818,7 +818,7 @@ async fn cancel_on_disconnect(core: &Arc<AppState>, conn_id: Uuid, comp: &str) {
 }
 
 /// The env of one live session (resolved from the connection row; RLS:
-/// per-env context set on the reading connection first — §4.3d).
+/// per-env context set on the reading connection first - §4.3d).
 async fn connection_env(core: &Arc<AppState>, conn_id: Uuid) -> Option<Uuid> {
     let mut conn = core.pool.acquire().await.ok()?;
     let mut ctx = conn.begin().await.ok()?;
@@ -864,8 +864,8 @@ fn split_fix_frame(buf: &[u8]) -> Option<(&[u8], &[u8])> {
 /// The retention policy: purge execution + the Cron schedule registration.
 ///
 /// Scheduling owner is Sentin8:Cron (DESIGN.md §6, BUSINESS.md); the
-/// conventions are the refdata transition-worker precedent — a dedicated
-/// `gateway-cron` workload certificate (CERTFREE-4V — the registry map
+/// conventions are the refdata transition-worker precedent - a dedicated
+/// `gateway-cron` workload certificate (CERTFREE-4V - the registry map
 /// carries `sentin8:cron:write`), the recurring named schedule registered
 /// against the Cron API, and the fire proxy-backed to THIS service's
 /// `POST /v1/internal/schedules/run`, which executes the purge on the
@@ -873,16 +873,16 @@ fn split_fix_frame(buf: &[u8]) -> Option<(&[u8], &[u8])> {
 pub mod retention {
     use uuid::Uuid;
 
-    /// Cron schedule `domain` (the schedule's owning service slug — the
+    /// Cron schedule `domain` (the schedule's owning service slug - the
     /// registration's subdomain form, matching the refdata precedent).
     pub const CRON_DOMAIN: &str = "exchange8-gateway";
-    /// Cron schedule `schedule_type` — Cron's ticker proxies back this kind.
+    /// Cron schedule `schedule_type` - Cron's ticker proxies back this kind.
     pub const CRON_SCHEDULE_TYPE: &str = "fix-message-purge";
-    /// Daily sweep at 05:30 UTC — before market open (the secrets prune
+    /// Daily sweep at 05:30 UTC - before market open (the secrets prune
     /// precedent's off-hours window).
     pub const CRON_EXPRESSION: &str = "30 5 * * *";
 
-    /// The `interval` literal for the retention window — the store IS the
+    /// The `interval` literal for the retention window - the store IS the
     /// resend window (invariant 5: a purged range gap-fills forward).
     pub const RETENTION_WINDOW: &str = "7 days";
 
@@ -890,10 +890,10 @@ pub mod retention {
     /// drains across loops instead of one giant lock).
     pub const PURGE_BATCH: i64 = 5_000;
 
-    /// Execute the purge — one env at a time, batched DELETE loops with an
+    /// Execute the purge - one env at a time, batched DELETE loops with an
     /// explicit `WHERE env_id = $1` (RLS context set on the SAME
     /// transaction, §4.3d). The env list rides the owner-side platform
-    /// helper `public.sentin8_outbox_unrelayed_envs('gateway')` — SECURITY
+    /// helper `public.sentin8_outbox_unrelayed_envs('gateway')` - SECURITY
     /// DEFINER returning env UUIDs only, so the purge reaches every env the
     /// gateway has sessions for without cross-tenant row visibility.
     /// Idempotent: the window predicate re-runs safely; a re-delivered fire
@@ -951,9 +951,9 @@ pub mod retention {
 
 // ── WS order-entry surface (the bidirectional /ws tier) ─────────────────
 
-/// `GET /ws` — the crypto order-entry upgrade handler (DESIGN.md §4 REST/WS
+/// `GET /ws` - the crypto order-entry upgrade handler (DESIGN.md §4 REST/WS
 /// table; `/ws` is the platform's only bidirectional transport tier). The
-/// upgrade is intentionally unauthenticated at the HTTP layer — the
+/// upgrade is intentionally unauthenticated at the HTTP layer - the
 /// per-connection logon frame carries the credentials (same gate semantics
 /// as FIX/OUCH session keys).
 pub async fn ws_upgrade(
@@ -964,11 +964,11 @@ pub async fn ws_upgrade(
         .into_response()
 }
 
-/// One WS order-entry session: the crypto primary path — the
+/// One WS order-entry session: the crypto primary path - the
 /// `CryptoWsOrderEvent` submit frames (rest_api.rs shapes) decode here and
 /// join the same submission pipeline as FIX/OUCH; ack/fill/done frames are
 /// the venue→client direction of the same envelope family. Data frames that
-/// fail to decode are structural drops (the WS close code — the same
+/// fail to decode are structural drops (the WS close code - the same
 /// session-protocol discipline as a malformed FIX frame); socket teardown
 /// on error.
 async fn ws_session(_state: Arc<AppState>, mut socket: WebSocket) {
@@ -980,13 +980,13 @@ async fn ws_session(_state: Arc<AppState>, mut socket: WebSocket) {
                 // Client → venue: the submit frame is the only inbound
                 // shape today (ack/fill/done are venue → client). An
                 // undecodable frame tears the session down (structural
-                // drop) — the upgrade gate semantics match FIX/OUCH.
+                // drop) - the upgrade gate semantics match FIX/OUCH.
                 if serde_json::from_str::<serde_json::Value>(&text)
                     .ok()
                     .filter(|v| v["e"] == "submit")
                     .is_none()
                 {
-                    tracing::debug!("gateway: malformed WS order frame — disconnect");
+                    tracing::debug!("gateway: malformed WS order frame - disconnect");
                     break;
                 }
             }
@@ -1033,7 +1033,7 @@ mod tests {
     #[test]
     fn event_vocabulary_lives_in_events_rs() {
         // The envelope builders own the vocabulary (events.rs carries the
-        // format tests); the wiring re-uses their constants — one source.
+        // format tests); the wiring re-uses their constants - one source.
         assert_eq!(crate::events::STREAM_FAMILY, STREAM_FAMILY);
         assert_eq!(crate::events::FIX_MESSAGE_RETENTION, FIX_MESSAGE_RETENTION);
         let (actions, _) = {
@@ -1063,7 +1063,7 @@ mod tests {
     #[tokio::test]
     async fn registry_rejects_everything_while_unarmed() {
         // A fresh process registry is None until `build_key_registry` arms
-        // it — the acceptors must reject (fail-closed), never default open.
+        // it - the acceptors must reject (fail-closed), never default open.
         // (The static is test-process-shared; snapshot here is None because
         // no test armed it.)
         if keys().await.is_none() {

@@ -10,13 +10,13 @@
 //! store insert) with a **payload-complete** outbox row in the SAME
 //! transaction (`insert_outbox_row_with_publisher`): `event_type`, `env_id`,
 //! subject, correlation/idempotency ids, and the snapshot the consumer
-//! reacts from — no read-back. The shell's outbox relay (boot step 8b)
+//! reacts from - no read-back. The shell's outbox relay (boot step 8b)
 //! pushes committed rows to Sentin8:Bus `POST /v1/produce`; the gateway
 //! never re-implements the relay.
 //!
-//! Stream family: `gateway` — the Bus stream key is `bus:{env_id}:gateway`;
+//! Stream family: `gateway` - the Bus stream key is `bus:{env_id}:gateway`;
 //! the family slug is validated by `sentin8::bus::outbox::validate_stream_family`
-//! (colons are structurally impossible in a family — the event NAMES carry
+//! (colons are structurally impossible in a family - the event NAMES carry
 //! them; the sibling convention covers `me` and `exchange8` families).
 //! Event names follow the vertical vocabulary
 //! `exchange8:gateway:{resource}:{operation}` (DESIGN.md §4 table).
@@ -26,39 +26,39 @@
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-// ── Event vocabulary (DESIGN.md §4 — colon segments only) ───────────────
+// ── Event vocabulary (DESIGN.md §4 - colon segments only) ───────────────
 
-/// Stream family for all gateway-emitted events (bare service slug — the
+/// Stream family for all gateway-emitted events (bare service slug - the
 /// Bus `XADD bus:{env}:{family}` key; colons are structurally impossible per
 /// `sentin8::bus::outbox::validate_stream_family`).
 pub const STREAM_FAMILY: &str = "gateway";
-/// `exchange8:gateway:connection:connected` — logon accepted (session
+/// `exchange8:gateway:connection:connected` - logon accepted (session
 /// Established; credentials verified).
 pub const EV_CONNECTION_CONNECTED: &str = "exchange8:gateway:connection:connected";
-/// `exchange8:gateway:connection:rejected` — logon rejected (unknown CompID,
+/// `exchange8:gateway:connection:rejected` - logon rejected (unknown CompID,
 /// bad key, or logon-window timeout).
 pub const EV_CONNECTION_REJECTED: &str = "exchange8:gateway:connection:rejected";
-/// `exchange8:gateway:connection:disconnected` — session teardown (logout,
+/// `exchange8:gateway:connection:disconnected` - session teardown (logout,
 /// low-seq teardown, TCP/TLS loss, drain, admin stop).
 pub const EV_CONNECTION_DISCONNECTED: &str = "exchange8:gateway:connection:disconnected";
-/// `exchange8:gateway:order:routed` — order validated and dispatched to its
+/// `exchange8:gateway:order:routed` - order validated and dispatched to its
 /// route (ME/OMS/SOR).
 pub const EV_ORDER_ROUTED: &str = "exchange8:gateway:order:routed";
-/// `exchange8:gateway:order:rejected` — order failed the pipeline before
+/// `exchange8:gateway:order:rejected` - order failed the pipeline before
 /// dispatch (shape/validation reject).
 pub const EV_ORDER_REJECTED: &str = "exchange8:gateway:order:rejected";
-/// `exchange8:me:order:cancel-all` — the cancel-on-disconnect dispatch
-/// (business rule 9 — the ME mirror of `CancelAllForConnection`); produced
+/// `exchange8:me:order:cancel-all` - the cancel-on-disconnect dispatch
+/// (business rule 9 - the ME mirror of `CancelAllForConnection`); produced
 /// by the gateway's disconnect path, consumed by Exchange8:ME's direct-stream
-/// subscriber. The name stays in the ME vocabulary — ME owns the reaction.
+/// subscriber. The name stays in the ME vocabulary - ME owns the reaction.
 pub const EV_ME_CANCEL_ALL: &str = "exchange8:me:order:cancel-all";
 
-/// `fix_message` retention window — the store IS the resend window
+/// `fix_message` retention window - the store IS the resend window
 /// (DESIGN.md §6 "store purge is the window").
 pub const FIX_MESSAGE_RETENTION: &str = "7 days";
 
 /// The identity carried inside every envelope (handler-owned, never derived
-/// from DB or headers — event-first: consumers re-key their state without
+/// from DB or headers - event-first: consumers re-key their state without
 /// callbacks).
 pub struct EventIdentity {
     /// Tenant environment of the event (the connection's `env_id` for
@@ -89,7 +89,7 @@ pub enum ConnectionOp {
 
 /// Envelope for a connection-lifecycle event: the connection identity +
 /// protocol context (`snapshot` carries the CompID, the row identity when
-/// resolved, and the reject reason for rejections — the session supervisor
+/// resolved, and the reject reason for rejections - the session supervisor
 /// and ops dashboards react from the payload alone).
 pub fn connection_event(op: ConnectionOp, snapshot: Value, identity: &EventIdentity) -> Value {
     let event_type = match op {
@@ -117,8 +117,8 @@ pub enum OrderOp {
 }
 
 /// Envelope for an order-submission event: the routing decision + the FULL
-/// normalized order snapshot (the consumer — ME/OMS/SOR's intake side or the
-/// clearing mirror — reacts from the payload alone; §6.7 completeness rule).
+/// normalized order snapshot (the consumer - ME/OMS/SOR's intake side or the
+/// clearing mirror - reacts from the payload alone; §6.7 completeness rule).
 pub fn order_event(op: OrderOp, snapshot: Value, identity: &EventIdentity) -> Value {
     let event_type = match op {
         OrderOp::Routed => EV_ORDER_ROUTED,
@@ -148,16 +148,16 @@ pub fn me_cancel_all_event(conn_id: Uuid, identity: &EventIdentity) -> Value {
 }
 
 /// Write the outbox row for an envelope in the CALLER's transaction
-/// (same tx as the domain change — outbox-first). The relay (shell boot
+/// (same tx as the domain change - outbox-first). The relay (shell boot
 /// step 8b) pushes it to Bus post-commit; a failed write aborts the
 /// caller's tx via `?` at the call site. `publisher_subject` carries the
 /// acting subject so consumers can attribute the event.
 ///
 /// # Errors
 /// Propagates the SQL error (the validator's rejection of the constant
-/// family text is structurally impossible — covered by the registry test).
+/// family text is structurally impossible - covered by the registry test).
 // The oneshot test binary includes this module but never drives the runtime
-// wiring chain (no DB) — test-binary dead code only.
+// wiring chain (no DB) - test-binary dead code only.
 #[cfg_attr(test, allow(dead_code))]
 pub async fn emit_outbox(
     tx: &mut sqlx::PgConnection,
@@ -196,7 +196,7 @@ pub enum AuditOp {
 
 /// Build the audit envelope for one mutation and write the
 /// `gateway.audit_journal` row on the CALLER's transaction (same tx as the
-/// domain change; the shell's pusher — boot step 8c — drains it to
+/// domain change; the shell's pusher - boot step 8c - drains it to
 /// Sentin8:Sys `POST /v1/audit` with the `gateway-audit` M2M workload).
 /// Reads are NOT journalized (audit-journal pattern: state changes only).
 ///
@@ -266,7 +266,7 @@ mod tests {
             .map(|(n, _)| *n)
             .chain([EV_ME_CANCEL_ALL])
         {
-            // Format contract: `vertical:service:resource:operation` —
+            // Format contract: `vertical:service:resource:operation` -
             // all-colon segments, no dots. Hyphenated segments are the
             // platform's scope convention.
             let segs: Vec<&str> = n.split(':').collect();
@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn stream_family_is_the_validator_safe_slug() {
         // Colons (event-vocabulary form) are structurally impossible in the
-        // stream family — `validate_stream_family` enforces `^[a-zA-Z0-9._-]+$`.
+        // stream family - `validate_stream_family` enforces `^[a-zA-Z0-9._-]+$`.
         assert!(sentin8::bus::outbox::validate_stream_family(STREAM_FAMILY).is_ok());
         assert!(sentin8::bus::outbox::validate_stream_family("exchange8:connection").is_err());
     }

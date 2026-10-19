@@ -56,29 +56,29 @@ pub struct ExecReport {
     pub exec_type: char,
     /// OrdStatus (39).
     pub ord_status: char,
-    /// OrderID (37) — ME order id.
+    /// OrderID (37) - ME order id.
     pub order_id: u64,
-    /// Instrument (48) — ME instrument id (mapped to symbol by the shell).
+    /// Instrument (48) - ME instrument id (mapped to symbol by the shell).
     pub instrument_id: u32,
-    /// CumQty (14) — total executed.
+    /// CumQty (14) - total executed.
     pub cum_qty: u64,
-    /// LeavesQty (151) — remaining.
+    /// LeavesQty (151) - remaining.
     pub leaves_qty: u64,
-    /// LastQty (32) — this fill's qty (Trade only).
+    /// LastQty (32) - this fill's qty (Trade only).
     pub last_qty: Option<u64>,
-    /// LastPx (31) — this fill's price (Trade only).
+    /// LastPx (31) - this fill's price (Trade only).
     pub last_px: Option<i128>,
     /// TradeID (19) (Trade only).
     pub trade_id: Option<u64>,
-    /// OrdRejReason (103) — reject reason code (Rejected only).
+    /// OrdRejReason (103) - reject reason code (Rejected only).
     pub reject_reason: Option<u16>,
-    /// Text (58) — human context (canceled/rejected reason).
+    /// Text (58) - human context (canceled/rejected reason).
     pub text: Option<String>,
 }
 
 impl ExecReport {
     /// Render as a FIX body fragment (tags 150/39/37/48/14/151/... in tag
-    /// order) — the shell adds the standard header/trailer.
+    /// order) - the shell adds the standard header/trailer.
     pub fn to_fix_body(&self) -> String {
         let mut parts = vec![
             format!("37={}", self.order_id),
@@ -154,7 +154,7 @@ pub fn from_executed(e: &OrderExecuted) -> ExecReport {
         order_id: e.order_id,
         instrument_id: e.instrument_id,
         // CumQty is derived by the shell (order state cache); the event
-        // carries remaining — cum = shell-tracked total.
+        // carries remaining - cum = shell-tracked total.
         cum_qty: 0,
         leaves_qty: e.remaining_volume.raw,
         last_qty: Some(e.qty.raw),
@@ -166,7 +166,7 @@ pub fn from_executed(e: &OrderExecuted) -> ExecReport {
 }
 
 /// OrderModified → ExecType=5 Replace; OrdStatus=5 Replaced (still live) or
-/// 0 New per the client's view — Replaced carries the new leaves.
+/// 0 New per the client's view - Replaced carries the new leaves.
 pub fn from_modified(e: &OrderModified) -> ExecReport {
     ExecReport {
         exec_type: EXEC_TYPE_REPLACE,
@@ -227,7 +227,7 @@ pub fn from_repriced(e: &OrderRepriced) -> ExecReport {
         order_id: e.order_id,
         instrument_id: e.instrument_id,
         cum_qty: 0,
-        leaves_qty: 0, // unchanged by repricing — shell fills from cache
+        leaves_qty: 0, // unchanged by repricing - shell fills from cache
         last_px: Some(e.price.raw),
         last_qty: None,
         trade_id: None,

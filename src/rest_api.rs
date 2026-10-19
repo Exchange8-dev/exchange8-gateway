@@ -9,7 +9,7 @@
 //!   *session key reference*, not
 //!   a password; verification is a constant-time comparison against the
 //!   key registry (the shell resolves `secret://` refs out-of-band).
-//! - **BFF-proxied REST order API** — the request/response shapes
+//! - **BFF-proxied REST order API** - the request/response shapes
 //!   `POST /proxy/exchange8/v1/orders` serves: submit/cancel/status with
 //!   scope names the BFF enforces (`exchange8:gateway:orders:write/read`).
 //!   See DESIGN.md §4.
@@ -20,7 +20,7 @@
 use std::collections::HashMap;
 
 // ---------------------------------------------------------------------------
-// Logon handshake — session key verification
+// Logon handshake - session key verification
 // ---------------------------------------------------------------------------
 
 /// A registered FIX session key: CompID pair → key material (resolved from
@@ -97,7 +97,7 @@ pub struct RestOrderRequest {
     /// Buy/sell.
     pub side_bid: bool,
     pub qty: u64,
-    /// Raw limit price (None = market — equity venues reject; crypto allows).
+    /// Raw limit price (None = market - equity venues reject; crypto allows).
     pub limit_raw: Option<i128>,
     /// TIF code ("0" day, "3" IOC, "4" FOK).
     pub tif: String,
@@ -154,11 +154,11 @@ pub struct RestOrderStatus {
 }
 
 // ---------------------------------------------------------------------------
-// Crypto REST/WS order entry — the crypto primary path
+// Crypto REST/WS order entry - the crypto primary path
 // ---------------------------------------------------------------------------
 
 /// Crypto order precision: prices/quantities are decimal-scaled ×10⁸
-/// — REST/WS carry them as plain integers in that scale.
+/// - REST/WS carry them as plain integers in that scale.
 #[cfg_attr(test, allow(dead_code))]
 pub const CRYPTO_SCALE: u8 = 8;
 
@@ -207,7 +207,7 @@ impl CryptoRestOrder {
 }
 
 /// One WS order-entry/execution event (bidirectional tier).
-/// `Ack` is the venue→client direction — constructed by the fill stream.
+/// `Ack` is the venue→client direction - constructed by the fill stream.
 #[cfg_attr(test, allow(dead_code))]
 #[derive(Clone, Debug, PartialEq)]
 pub enum CryptoWsOrderEvent {
@@ -358,7 +358,7 @@ mod tests {
             instrument_id: 1,
             side_bid: true,
             qty_raw: 350_000_000,
-            limit_raw: None, // market — allowed on crypto
+            limit_raw: None, // market - allowed on crypto
             tif: CryptoTif::Ioc,
         };
         assert!(o.validate().is_ok());

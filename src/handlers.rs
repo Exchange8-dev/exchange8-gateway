@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Exchange8:Gateway data handlers — FIX session/connection management API.
+//! Exchange8:Gateway data handlers - FIX session/connection management API.
 //!
 //! Every handler follows the platform authorization pipeline (§5): verify
 //! bearer → scope check → RLS context (same connection) → explicit
@@ -23,13 +23,13 @@ use uuid::Uuid;
 
 use sentin8::shell::{err_db, AppState};
 
-/// Scope constants for every handler in this module — single source of truth
+/// Scope constants for every handler in this module - single source of truth
 /// for both the call sites and the authorization matrix tests (design
 /// §13b.1; see DESIGN.md §4).
 pub mod scopes {
     /// `GET /v1/connections` + `GET /v1/connections/{id}/seq`.
     pub const CONNECTIONS_READ: &str = "exchange8:connection:read";
-    /// `POST /v1/connections/{id}/seq-reset` — admin sequence reset.
+    /// `POST /v1/connections/{id}/seq-reset` - admin sequence reset.
     pub const CONNECTIONS_WRITE: &str = "exchange8:connection:write";
     /// The cron proxy-back purge action (WORKER contract, see
     /// `runtime_wiring::retention`); the mirror admits the cron workload's
@@ -46,7 +46,7 @@ pub struct ListConnectionsQuery {
 
 /// The correlation id from the platform middleware (`X-Sentin8-Correlation-
 /// Id` is propagated by the shell's correlation middleware; a missing header
-/// — direct CLI/dev calls — generates one so the envelope stays complete).
+/// - direct CLI/dev calls - generates one so the envelope stays complete).
 fn correlation_from(headers: &axum::http::HeaderMap) -> String {
     headers
         .get("x-sentin8-correlation-id")
@@ -57,7 +57,7 @@ fn correlation_from(headers: &axum::http::HeaderMap) -> String {
 }
 
 /// JSON serialization failure mapping (a FromRow→Value snapshot is
-/// infallible by construction — the mapping exists so `?` stays uniform).
+/// infallible by construction - the mapping exists so `?` stays uniform).
 fn err_db_json(e: serde_json::Error) -> (StatusCode, String) {
     err_db(e)
 }
@@ -87,7 +87,7 @@ pub struct ConnectionResponse {
     tag = "gateway",
 )]
 
-/// `GET /v1/connections` — list client sessions (RLS-scoped).
+/// `GET /v1/connections` - list client sessions (RLS-scoped).
 pub async fn list_connections(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
@@ -145,7 +145,7 @@ pub struct SeqStateResponse {
     tag = "gateway",
 )]
 
-/// `GET /v1/connections/{id}/seq` — persisted FIX sequence counters.
+/// `GET /v1/connections/{id}/seq` - persisted FIX sequence counters.
 pub async fn get_seq_state(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
@@ -194,7 +194,7 @@ pub struct SeqResetRequest {
     tag = "gateway",
 )]
 
-/// `POST /v1/connections/{id}/seq-reset` — admin sequence reset
+/// `POST /v1/connections/{id}/seq-reset` - admin sequence reset
 /// (the platform spec seq reset parity; design §6 admin ops).
 pub async fn seq_reset(
     State(state): State<Arc<AppState>>,
@@ -233,7 +233,7 @@ pub async fn seq_reset(
     .await
     .map_err(err_db)?;
     // Durability pair on the SAME tx: the audit journal row for the admin
-    // mutation (DESIGN.md §5 audit journaling; the shell pusher — boot 8c —
+    // mutation (DESIGN.md §5 audit journaling; the shell pusher - boot 8c -
     // drains it to Sys).
     if let Some(after_row) = &row {
         use crate::events::{journal_mutation, AuditOp, EventIdentity};
@@ -265,13 +265,13 @@ pub async fn seq_reset(
 // ---------------------------------------------------------------------------
 // Admin/RFW surface (DESIGN.md §4 admin surface; registration declares the
 // pages `sessions` / `messages`). `GET /v1/admin/ui/{page}` serves the RFW
-// page-definition JSON (Sentin8:Dash renders it — services never ship UI
+// page-definition JSON (Sentin8:Dash renders it - services never ship UI
 // code); the `/v1/admin/*` data endpoints alias the same RLS-scoped
 // handlers. Admin session stop rides the runtime session registry
 // (DESIGN.md §4.5 admin logout).
 // ---------------------------------------------------------------------------
 
-/// The RFW page definitions for this service's `admin_ui` pages — same
+/// The RFW page definitions for this service's `admin_ui` pages - same
 /// definition shape the Dash renderer consumes (`admin_ui` module
 /// machinery to follow the refdata pattern; this module holds the pure
 /// definition data for gateway's own pages).
@@ -352,7 +352,7 @@ pub mod admin_pages {
     tag = "exchange8-admin",
 )]
 
-/// `GET /v1/admin/ui/{page}` — the RFW page definition (Dash renders it;
+/// `GET /v1/admin/ui/{page}` - the RFW page definition (Dash renders it;
 /// gated by the page's declared admin scope).
 pub async fn admin_ui_page(
     State(state): State<Arc<AppState>>,
@@ -383,7 +383,7 @@ pub async fn admin_ui_page(
     tag = "exchange8-admin",
 )]
 
-/// `POST /v1/admin/sessions/{id}/stop` — admin session stop (design §4.5
+/// `POST /v1/admin/sessions/{id}/stop` - admin session stop (design §4.5
 /// `sessions` page action; the runtime registry delivers the logout).
 pub async fn stop_session(
     State(state): State<Arc<AppState>>,
@@ -398,7 +398,7 @@ pub async fn stop_session(
         sentin8::shield::EvalTarget::new(scopes::CONNECTIONS_WRITE),
     )
     .await?;
-    // RLS-scoped existence probe first — an invalid id must 404, not 200.
+    // RLS-scoped existence probe first - an invalid id must 404, not 200.
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
     let mut ctx = conn.begin().await.map_err(err_db)?;
     sentin8::shell::set_tenant_context(&mut ctx, a.env_id()).await;
@@ -452,7 +452,7 @@ pub async fn stop_session(
     tag = "exchange8-admin",
 )]
 
-/// `GET /v1/admin/messages` — the resend-window store rows (the `messages`
+/// `GET /v1/admin/messages` - the resend-window store rows (the `messages`
 /// page data endpoint; retention-purged per DESIGN.md §6).
 pub async fn list_fix_messages(
     State(state): State<Arc<AppState>>,
@@ -496,24 +496,24 @@ pub struct FixMessageResponse {
     pub ts: chrono::DateTime<chrono::Utc>,
 }
 
-/// `POST /v1/internal/schedules/run` — the Sentin8:Cron proxy-back fire
+/// `POST /v1/internal/schedules/run` - the Sentin8:Cron proxy-back fire
 /// target for the `fix-message-purge` retention schedule (DESIGN.md §6; the
 /// refdata/secrets precedents). The caller is the `gateway-cron` M2M
-/// workload — the bearer is verified like any principal (steps 1–4) and the
+/// workload - the bearer is verified like any principal (steps 1-4) and the
 /// step-5 gate evaluates the dedicated purge action, which the seeded
 /// mirror admits via the cron workload's `sentin8:cron:write`. The DELETE
-/// runs on this service's OWN schema (owner-side maintenance — the
+/// runs on this service's OWN schema (owner-side maintenance - the
 /// retention window spans all envs, so the purge resolves envs from the
 /// owner-side helper; the schema is service-private).
 #[derive(Debug, Deserialize)]
 pub struct ScheduleRunRequest {
     pub schedule_id: Option<Uuid>,
     pub schedule_type: String,
-    /// The env the cron row carries (informational for the purge — the
+    /// The env the cron row carries (informational for the purge - the
     /// window spans every env; the response echoes it).
     pub env_id: Uuid,
     pub correlation_id: Option<String>,
-    /// The cron ticker's job idempotency key — carried through to the audit
+    /// The cron ticker's job idempotency key - carried through to the audit
     /// trail; the purge itself dedupes on the window predicate.
     #[allow(dead_code)]
     pub idempotency_key: Option<String>,
@@ -553,7 +553,7 @@ pub async fn internal_schedules_run(
     let purged = crate::runtime_wiring::retention::purge(&state)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    // Audit the purge run (Execute) — one row per fire; the correlation is
+    // Audit the purge run (Execute) - one row per fire; the correlation is
     // the cron row's (schedule id when the ticker omits it).
     {
         let mut conn = state.pool.acquire().await.map_err(err_db)?;
@@ -639,7 +639,7 @@ mod scope_matrix {
                 service_type: None,
             },
             // Bearer-path context: no certificate workload on the test
-            // identity (CERTFREE-4V — the field exists for the cert path).
+            // identity (CERTFREE-4V - the field exists for the cert path).
             workload: None,
         }
     }
@@ -723,7 +723,7 @@ mod scope_matrix {
             }
         }
         // Every declared constant must be wired into HANDLER_SCOPES. Shared
-        // constants across handlers are legitimate — dedup first.
+        // constants across handlers are legitimate - dedup first.
         all.sort_unstable();
         all.dedup();
         let mut declared = vec![

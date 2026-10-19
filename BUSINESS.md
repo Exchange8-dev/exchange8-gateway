@@ -1,4 +1,4 @@
-# Exchange8:Gateway — Business Requirements & Functionality
+# Exchange8:Gateway - Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Exchange8:Gateway **does for the business**. For architecture read `README.md`;
@@ -12,7 +12,7 @@
   REST/WebSocket surface for operator and crypto venue users.
 - Guarantee that every order entering the platform has a platform-owned
   identity, a clean pre-execution validation, and the correct downstream
-  destination — matching, peg, or external routing — without clients
+  destination - matching, peg, or external routing - without clients
   knowing the internal service topology.
 - Give clients transactional confidence: sequence integrity, resend
   capability, and durable session state so no order acknowledgment is lost
@@ -31,7 +31,7 @@
 | OUCH binary order entry | Low-latency fixed-layout alternative (enter / replace / cancel + lifecycle responses) over the same session controls |
 | Order intake & validation | Normalized order shape checks (identity, quantity, price/peg consistency) before anything reaches an execution venue |
 | Order routing decision | Limit/market → matching engine; pegged → OMS peg supervision; strategy-with-destination → smart order router |
-| Platform order identity | Monotonic assignment of `gw_order_id` from leased sequence blocks — every order is traceable platform-wide |
+| Platform order identity | Monotonic assignment of `gw_order_id` from leased sequence blocks - every order is traceable platform-wide |
 | Execution report delivery | All matching-engine lifecycle outcomes converted to FIX ExecutionReports for the owning session |
 | Vendor / on-behalf-of submissions | Vendor sessions submit for beneficiary firms with correct attribution and report delivery |
 | Cancel-on-disconnect | Automatic cancellation of all live orders of a dropped connection |
@@ -40,7 +40,7 @@
 | Session durability & resend | Persisted counters and a durable message store serving resends within the retention window |
 | Session state machine | Per-connection FIX lifecycle: logon → established → logout → terminated, recoverable across restarts |
 | Durable event publication | Session/order lifecycle events (logon accepted/rejected, disconnect, order routed/rejected) flow to the platform bus; every consumer downstream reacts from the event payload alone |
-| Resend-store retention | Scheduled purge of the message store outside the retention window — delegated to the platform scheduler with an idempotent, audited execution pass |
+| Resend-store retention | Scheduled purge of the message store outside the retention window - delegated to the platform scheduler with an idempotent, audited execution pass |
 | Admin RFW pages | The registered `sessions` / `messages` admin pages render inside the platform dashboard (page definitions + data endpoints served by the service) |
 | Admin session stop | Operators stop a live session; the runtime delivers the logout and the disconnect semantics (including cancel-on-disconnect) follow naturally |
 
@@ -68,7 +68,7 @@
 | Capability | Business rule |
 |---|---|
 | Session logon | A session is established only with a valid registered CompID and matching Sentin8-issued session key; the rejection never reveals which factor failed |
-| Logon timeout | A connection that does not logon in time is disconnected — capacity is not held by idle sockets |
+| Logon timeout | A connection that does not logon in time is disconnected - capacity is not held by idle sockets |
 | Heartbeat | The negotiated interval is clamped to a safe range so dead connections are detected promptly without flooding the network |
 | Sequence reset | A client may restart sequence numbering cleanly on logon; admin can also force a reset through the REST surface |
 | Session recovery | After a drop, the session resumes from persisted counters; missed outbound reports are replayed on request within the retention window |
@@ -88,7 +88,7 @@
 
 | Capability | Business rule |
 |---|---|
-| Cancel-on-disconnect | When a connection with the flag drops, every live order on that connection is cancelled — nothing rests unowned on the book |
+| Cancel-on-disconnect | When a connection with the flag drops, every live order on that connection is cancelled - nothing rests unowned on the book |
 | Terminal-state hygiene | Filled, killed, or cancelled orders leave the live registry; only genuinely live orders are ever swept by a disconnect |
 | On-behalf-of attribution | A vendor session submitting for a beneficiary attributes risk/STP to the beneficiary while the vendor session receives the reports |
 | Duplicate protection | Re-delivered messages flagged as possible duplicates are dropped without processing; unexpected low sequence numbers terminate the session rather than guessing |
@@ -99,9 +99,9 @@
 |---|---|
 | Submit via BFF | REST order submission carries the same validation as FIX (id, symbol, quantity, TIF); market orders are rejected where the venue disallows them (crypto allows) |
 | Status | Order status is reported in the same FIX status vocabulary, so one status model serves all clients |
-| Cancel | Cancel answers are explicit — cancelled, or not cancelled with a reason (unknown/already terminal) |
+| Cancel | Cancel answers are explicit - cancelled, or not cancelled with a reason (unknown/already terminal) |
 | Session visibility | Operators with the connection-read right see their environment's sessions only (tenant isolation) |
-| Sequence administration | Admins can reset stuck sequence pairs to a valid start (1) — never to an invalid state |
+| Sequence administration | Admins can reset stuck sequence pairs to a valid start (1) - never to an invalid state |
 | Admin session stop | Admins stop a live session via the admin surface; the action is authorization-gated and audit-journaled |
 | Admin views | The `sessions` / `messages` dashboard pages render the session table and the resend-window message store, both RLS-scoped |
 
@@ -112,7 +112,7 @@ Events flow out through the durable outbox; names follow the platform
 
 | Event | When fired | Consumer |
 |---|---|---|
-| `exchange8:gateway:connection:connected` | Logon accepted — session established with a verified credential | Ops monitoring, session supervisors |
+| `exchange8:gateway:connection:connected` | Logon accepted - session established with a verified credential | Ops monitoring, session supervisors |
 | `exchange8:gateway:connection:rejected` | Logon credential failed (unknown CompID or bad key; never discloses which factor) | Ops/monitoring, security alerts |
 | `exchange8:gateway:connection:disconnected` | Session teardown of any cause (logout, low-seq, loss, drain, admin stop) | Ops monitoring, session supervisors |
 | `exchange8:gateway:order:routed` | A validated order was dispatched to its route (ME / OMS peg / SOR) with the full normalized order attached | Exchange8:Clearing (drop-copy/mirror), intake consumers |
@@ -138,10 +138,10 @@ Inbound (consumed):
    metadata, is rejected before any venue sees it.
 3. Sequence numbers are strictly monotonic per direction per session;
    duplicate-flagged re-deliveries are dropped, and out-of-order or
-   regressed traffic is resolved by the protocol (resend/gap-fill) — never
+   regressed traffic is resolved by the protocol (resend/gap-fill) - never
    by silently accepting the gap.
 4. A resend only ever returns messages that were actually sent; the
-   retention window is honest — a purged range is closed with an explicit
+   retention window is honest - a purged range is closed with an explicit
    gap-fill, never fabricated.
 5. Only the owning environment's sessions and messages are ever visible to
    a caller; the tenant boundary is enforced by the platform's row-level
@@ -150,7 +150,7 @@ Inbound (consumed):
    reference resolves at logon time and the key itself lives in the secret
    store.
 7. Disconnect with cancel-on-disconnect enabled removes exactly that
-   connection's live orders — orders of other connections are untouched.
+   connection's live orders - orders of other connections are untouched.
 8. Status reporting uses one vocabulary (FIX execution report codes) for
    FIX, OUCH, and REST clients alike.
 9. Every administrative session action (sequence reset, session stop) and
@@ -224,7 +224,7 @@ Inbound (consumed):
    identical validation semantics; market orders are refused where the
    venue disallows them and allowed on crypto paths.
 10. A gateway operator can list connections, read sequence state, and
-    perform an admin sequence reset — each action gated by the connection
+    perform an admin sequence reset - each action gated by the connection
     authorization surface and audited.
 11. An outage of the bus or the audit sink never loses domain or audit
     events: rows remain queued and are delivered on recovery exactly once.
@@ -237,13 +237,13 @@ Inbound (consumed):
   additional exchange-native protocols) should terminate on the gateway,
   and how the certification process gates each.
 - The retention length of the resend store as a business-visible guarantee
-  (how far back a client may replay) — the window is a service policy
+  (how far back a client may replay) - the window is a service policy
   parameter (currently 7 days, swept daily by the platform scheduler), not
   yet a product decision.
 - Report granularity for vendor sessions: whether beneficiaries should
   also receive reports (client-side drop logic may differ today).
 - Admin UX coverage for the registered messages page (message log viewer)
-  beyond the registered table columns — the RFW definitions ship the
+  beyond the registered table columns - the RFW definitions ship the
   session/message tables; a frame-level message inspector is a renderer
   capability.
 - Whether sequence-reset administration should also be exposed as an

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Exchange8:Gateway OUCH — binary order-entry protocol codec (Nasdaq-style).
+//! Exchange8:Gateway OUCH - binary order-entry protocol codec (Nasdaq-style).
 //!
 //! OUCH is the low-latency binary alternative to FIX for order entry: fixed
 //! layout, no delimiters, little-endian, alpha fields left-justified and
@@ -41,7 +41,7 @@ pub enum OuchInbound {
     Cancel(CancelOrder),
 }
 
-/// `EnterOrder` — new order submission.
+/// `EnterOrder` - new order submission.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnterOrder {
     /// Display/hidden bitfield (OUCH Buy/Sell Type byte).
@@ -66,7 +66,7 @@ pub struct EnterOrder {
     pub customer: [u8; 10],
 }
 
-/// `ReplaceOrder` — modify resting order.
+/// `ReplaceOrder` - modify resting order.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReplaceOrder {
     pub quantity: u32,
@@ -79,7 +79,7 @@ pub struct ReplaceOrder {
     pub orig_cl_ord_id: [u8; 20],
 }
 
-/// `CancelOrder` — cancel by client order reference.
+/// `CancelOrder` - cancel by client order reference.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CancelOrder {
     pub orig_cl_ord_id: [u8; 20],

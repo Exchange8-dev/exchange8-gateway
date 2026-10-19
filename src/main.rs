@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Exchange8:Gateway
 // SPDX-License-Identifier: Apache-2.0
 
-//! Exchange8:GATEWAY service binary — FIX 4.2/OUCH/WS order entry + session management.
+//! Exchange8:GATEWAY service binary - FIX 4.2/OUCH/WS order entry + session management.
 //!
 //! Design: `design/sentin8-exchange8-gateway-technical-design.md` (see the
 //! service doc for the exact file). Core logic in the sibling modules;
@@ -83,7 +83,7 @@ fn extend_router(
             axum::routing::get(handlers::admin_ui_page),
         )
         // ── Sentin8:Cron proxy-back: the retention fire target (design §6;
-        // Sentin8:Cron presents its own `gateway-cron` M2M token — the
+        // Sentin8:Cron presents its own `gateway-cron` M2M token - the
         // step-5 mirror admits the cron scope on the purge action).
         .route(
             "/v1/internal/schedules/run",
@@ -99,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
             .with_registration(registration::print)
             // The state closure spawns the protocol acceptors + retention
             // schedule + session registry (runtime architecture §2; shell
-            // boot step 8) and keeps the shell `ServiceCore` as the state —
+            // boot step 8) and keeps the shell `ServiceCore` as the state -
             // handlers extract `State<Arc<AppState>>` unchanged.
             .with_state(|core| async move {
                 // The tasks need their own handle to config+pool; clone the

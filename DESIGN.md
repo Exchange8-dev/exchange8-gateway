@@ -1,32 +1,32 @@
-# Exchange8:Gateway — Detailed Design Document
+# Exchange8:Gateway - Detailed Design Document
 
 ## 1. Scope & Context
 
 Exchange8:Gateway owns:
 
-- **Client session lifecycle** — the `gateway.connection` rows (CompID,
+- **Client session lifecycle** - the `gateway.connection` rows (CompID,
   status, protocol, cancel-on-disconnect flag, vendor/beneficiary,
   certification state, price-protection mode, risk-bypass flag, book
   tokens) and the per-connection FIX state it implies.
-- **FIX 4.2 session protocol** — logon negotiation, sequence integrity,
+- **FIX 4.2 session protocol** - logon negotiation, sequence integrity,
   gap handling, resends, heartbeat/test-request, logout; plus the OUCH
   binary codec subset and the BFF REST/WebSocket order shapes.
-- **ExecutionReport conversion** — matching-engine lifecycle events → FIX
+- **ExecutionReport conversion** - matching-engine lifecycle events → FIX
   35=8 field selection for the owning client session.
-- **Order routing at the front door** — validated `ExchangeOrder`s are
+- **Order routing at the front door** - validated `ExchangeOrder`s are
   dispatched to Exchange8:ME (limit/market), the Exchange8:OMS peg supervisor
   (pegged), or Exchange8:SOR (strategy tokens + `ex_destination`); the gateway
   assigns `gw_order_id` from leased sequence blocks.
-- **Session admin surface** — connection listing, sequence-state reads and
+- **Session admin surface** - connection listing, sequence-state reads and
   admin sequence resets, Shield policy admin via the shared shell mount.
-- **Durable session support** — `gateway.fix_session_state` (counters) and
+- **Durable session support** - `gateway.fix_session_state` (counters) and
   `gateway.fix_message` (resend store), the local `gateway.outbox` (Bus
   relay) and `gateway.audit_journal` (Sys audit pusher).
 
 Exchange8:Gateway explicitly does NOT own:
 
 - Matching, peg pricing, or routing strategy (Exchange8:ME / Exchange8:OMS / Exchange8:SOR).
-- Pre-trade risk authorization in depth — the submission pipeline calls the
+- Pre-trade risk authorization in depth - the submission pipeline calls the
   Exchange8:Risk pre-check; the gateway performs only shape validation.
 - Trade/ledger persistence (events go to the bus; Exchange8:Clearing sinks them).
 - Instrument reference data (Exchange8:RefData resolves symbols).
@@ -34,34 +34,34 @@ Exchange8:Gateway explicitly does NOT own:
   gateway only verifies keys issued by Auth against `secret://` references.
 - Market-data publication (Exchange8:MD) or vendor feeds (Exchange8:VFeeds).
 
-System context — trust boundaries are the platform (Sentin8 services,
+System context - trust boundaries are the platform (Sentin8 services,
 shared trust root, M2M clients) vs the exchange8 vertical (gateway +
 domain services + the vertical database):
 
 ```mermaid
 graph TD
-    subgraph Market["Market participants — external"]
+    subgraph Market["Market participants - external"]
         FIXC["FIX 4.2 OMS / prop desk"]
         OUCHC["OUCH binary client"]
         VENDOR["Vendor virtual session - tag 115 beneficiary"]
     end
 
-    subgraph Platform["Sentin8 platform — sys/ops env"]
-        PROXY["Sentin8:Proxy — SNI to exchange8-gateway.{env}.{org}.{tld}"]
-        BFF["Sentin8:BFF — /proxy/exchange8/v1/*"]
-        AUTHZ["Sentin8:Auth — issuer, JWKS, session keys, DCR"]
-        SHIELD["Sentin8:Policy — Shield policy sets"]
-        BUSX["Sentin8:Bus — POST /v1/produce + SSE consume"]
-        SYSX["Sentin8:Sys — POST /v1/audit, GET /v1/resolve/hostname"]
+    subgraph Platform["Sentin8 platform - sys/ops env"]
+        PROXY["Sentin8:Proxy - SNI to exchange8-gateway.{env}.{org}.{tld}"]
+        BFF["Sentin8:BFF - /proxy/exchange8/v1/*"]
+        AUTHZ["Sentin8:Auth - issuer, JWKS, session keys, DCR"]
+        SHIELD["Sentin8:Policy - Shield policy sets"]
+        BUSX["Sentin8:Bus - POST /v1/produce + SSE consume"]
+        SYSX["Sentin8:Sys - POST /v1/audit, GET /v1/resolve/hostname"]
     end
 
     subgraph Vertical["exchange8 vertical"]
-        GW["Exchange8:Gateway — exchange8-gateway"]
+        GW["Exchange8:Gateway - exchange8-gateway"]
         ME2["Exchange8:ME"]
         OMS2["Exchange8:OMS"]
         SOR2["Exchange8:SOR"]
-        RISK2["Exchange8:Risk — pre-trade authorize"]
-        DBX[("PostgreSQL — db exchange8, schema gateway")]
+        RISK2["Exchange8:Risk - pre-trade authorize"]
+        DBX[("PostgreSQL - db exchange8, schema gateway")]
     end
 
     FIXC -- "FIX 4.2 over TLS, session-key logon" --> PROXY
@@ -81,27 +81,27 @@ graph TD
     GW -."risk pre-check hook (pipeline step 4)".-> RISK2
 ```
 
-Container view — the service internals grouped by layer:
+Container view - the service internals grouped by layer:
 
 ```mermaid
 graph TD
     subgraph GW["exchange8-gateway process"]
         subgraph Api["HTTP + admin surface"]
-            RTR["axum router — /v1/connections, /v1/connections/{id}/seq, /v1/connections/{id}/seq-reset, /v1/admin/connections, /v1/health"]
-            PA["Shield policy admin mount — sentin8::shell::mount_policy_admin"]
-            HDL["handlers.rs — RLS-scoped handler functions"]
+            RTR["axum router - /v1/connections, /v1/connections/{id}/seq, /v1/connections/{id}/seq-reset, /v1/admin/connections, /v1/health"]
+            PA["Shield policy admin mount - sentin8::shell::mount_policy_admin"]
+            HDL["handlers.rs - RLS-scoped handler functions"]
         end
 
-        subgraph Proto["Protocol cores — pure modules"]
-            SES["session.rs — FixSession state machine"]
-            SUB["submission.rs — route_order, OrderIdAssigner, CancelOnDisconnect, OnBehalfOf, FixVersion"]
-            OUC["ouch.rs — OUCH codec"]
-            EXR["exec_report.rs — ME event to ExecReport"]
-            REST["rest_api.rs — SessionKeyRegistry, REST/WS shapes"]
+        subgraph Proto["Protocol cores - pure modules"]
+            SES["session.rs - FixSession state machine"]
+            SUB["submission.rs - route_order, OrderIdAssigner, CancelOnDisconnect, OnBehalfOf, FixVersion"]
+            OUC["ouch.rs - OUCH codec"]
+            EXR["exec_report.rs - ME event to ExecReport"]
+            REST["rest_api.rs - SessionKeyRegistry, REST/WS shapes"]
         end
 
-        subgraph Shell["Sentin8 Shell — shared"]
-            REG["registration.rs — --print-registration"]
+        subgraph Shell["Sentin8 Shell - shared"]
+            REG["registration.rs - --print-registration"]
             POOL["capped PgPool"]
             RELAY["outbox relay task"]
             AUD["audit journal pusher"]
@@ -120,7 +120,7 @@ graph TD
     OUC -- "normalized orders / OuchOutbound" --> SUB
     RELAY -- "outbox rows to Bus (M2M)" --> BUSX["Sentin8:Bus"]
     AUD -- "journal rows to Sys (M2M)" --> SYSX["Sentin8:Sys"]
-    REG -.-> AUTHZ["Sentin8:Auth — DCR grant rows"]
+    REG -.-> AUTHZ["Sentin8:Auth - DCR grant rows"]
     TLS -- "SNI front door" --> EXT["Sentin8:Proxy"]
 ```
 
@@ -130,7 +130,7 @@ The binary is a thin tokio shell: `main.rs` constructs
 `Sentin8Shell::new("exchange8:gateway", "EXCHANGE8_GATEWAY")` with the
 registration printer, simple state, and the extended router; the shell then
 serves the HTTP/TLS surface, mounts the Shield admin API, and spawns the
-platform workers (outbox relay — boot step 8b, audit pusher — boot step 8c)
+platform workers (outbox relay - boot step 8b, audit pusher - boot step 8c)
 in-process; the gateway never duplicates them. The state closure additionally
 spawns the service's own runtime wiring (`runtime_wiring::spawn_tasks`): the
 logon key gate arm, the FIX/OUCH TLS acceptor tasks, and the retention Cron
@@ -138,7 +138,7 @@ they are binary-level tasks, not separate processes.
 
 Components:
 
-- **HTTP router (axum)** — the connection-management API:
+- **HTTP router (axum)** - the connection-management API:
   `GET /v1/connections`, `GET /v1/connections/{id}/seq`,
   `POST /v1/connections/{id}/seq-reset`, the admin/RFW surface
   (`/v1/admin/sessions` GET+POST stop, `/v1/admin/sessions/{id}/stop`,
@@ -146,14 +146,14 @@ Components:
   upgrade tier, the Sentin8:Cron proxy-back
   (`POST /v1/internal/schedules/run`), plus the shared
   `sentin8::shell::mount_policy_admin` Shield surface and `/v1/health`.
-- **FIX acceptor task** — a dedicated `sentin8::tls::TlsListener` bound to
+- **FIX acceptor task** - a dedicated `sentin8::tls::TlsListener` bound to
   `EXCHANGE8_GATEWAY_FIX_PORT` (env-injected, the captain port contract): one
   connection task per accepted TLS client; the TLS handshake runs inside the
   connection task so a stalled peer never delays the acceptor. The OUCH
   acceptor task is the same listener pattern on
   `EXCHANGE8_GATEWAY_OUCH_PORT` (SoupBinTCP-framed packets ride the same
   submission pipeline).
-- **Logon key gate** — the per-process `SessionKeyRegistry` armed at boot
+- **Logon key gate** - the per-process `SessionKeyRegistry` armed at boot
   from the secret reference chain (`secret://exchange8/fix/{comp}`, resolved
   via the shared `sentin8-secrets` backends): the env list rides the
   owner-side platform helper `public.sentin8_outbox_unrelayed_envs('gateway')`
@@ -161,37 +161,37 @@ Components:
   transactions whose tenant context is set on the same connection. An
   unresolvable reference skips its comp; a failed bootstrap leaves the
   registry unarmed, which rejects every logon (fail-closed).
-- **Session supervisor registry** — the per-process map of live connection
+- **Session supervisor registry** - the per-process map of live connection
   ids → stop channels; the admin stop handler delivers through it. The
-  `FixSession` itself is per-connection-task state (single owner — no shared
+  `FixSession` itself is per-connection-task state (single owner - no shared
   mutable counters across sessions; §7).
-- **`FixSession` protocol core** — one state machine per client
+- **`FixSession` protocol core** - one state machine per client
   connection; the connection task loads counters from
   `gateway.fix_session_state`, feeds decoded `FixMessage`s to `on_message`,
   executes the returned `SessionAction`s on the socket, persists stamped
   outbound frames (counter advance + store insert in ONE transaction) before
   transmit, and drives the logon-window (10 s) and heartbeat read-timeout
   (1.3× the clamped interval) timers.
-- **Submission pipeline** — `route_order` shape validation + routing,
+- **Submission pipeline** - `route_order` shape validation + routing,
   `OrderIdAssigner` leasing blocks from the platform sequence facility, the
   `CancelOnDisconnect` registry, and `OnBehalfOf` attribution. The RISK
   PRE-CHECK (`POST /v1/authorize`, sync, fail-closed) is the documented
-  cross-service seam — `route_order` performs the shape stage only; the
-  endpoint is owned by Exchange8:Risk (its router does not mount it yet — §10).
-- **Typed event envelopes** — `events.rs` (the refdata convention): the five
+  cross-service seam - `route_order` performs the shape stage only; the
+  endpoint is owned by Exchange8:Risk (its router does not mount it yet - §10).
+- **Typed event envelopes** - `events.rs` (the refdata convention): the five
   vocabulary constants + the ME cancel-all mirror, the `EventIdentity` block,
   and the envelope builders; emissions pair with the domain persistence in
-  the SAME transaction (`insert_outbox_row_with_publisher`) — the relay
+  the SAME transaction (`insert_outbox_row_with_publisher`) - the relay
   (shell boot 8b) pushes committed rows to Bus `POST /v1/produce`.
-- **Execution-report conversion** — `exec_report.rs` turns ME lifecycle
+- **Execution-report conversion** - `exec_report.rs` turns ME lifecycle
   events (OrderAccepted, OrderBooked, OrderExecuted, OrderModified,
   OrderKilled, TransactionRejected, OrderRepriced) into `ExecReport` field
   sets; the connection task frames them through the session
   (`prepare_app_message`) and persists them to the resend store.
-- **REST/WS shapes** — `rest_api.rs` request/response contracts for the
+- **REST/WS shapes** - `rest_api.rs` request/response contracts for the
   BFF surface, `SessionKeyRegistry` for the logon gate; the `/ws` upgrade
   decodes the crypto submit frames into the same submission pipeline.
-- **Retention executor** — `runtime_wiring::retention`: the recurring
+- **Retention executor** - `runtime_wiring::retention`: the recurring
   `fix-message-purge` Sentin8:Cron schedule registered through the DCR'd
   `gateway-cron` M2M workload (cert-bound, `sentin8:cron:write`; the mirror
   admits the scope on the dedicated
@@ -199,18 +199,18 @@ Components:
   `POST /v1/internal/schedules/run`, which executes the batched per-env
   DELETE (envs from the owner-side helper, per-env RLS context on the same
   transaction, bounded 5000-row batches) on the service's own schema; the
-  fire journals an audit-execute row. Scheduling owner is Sentin8:Cron — no
+  fire journals an audit-execute row. Scheduling owner is Sentin8:Cron - no
   embedded scheduler loop.
-- **Shell workers** — outbox relay (`gateway.outbox` → Bus
+- **Shell workers** - outbox relay (`gateway.outbox` → Bus
   `POST /v1/produce`, M2M token, idempotency key = row id) and the audit
   pusher (`gateway.audit_journal` → Sys `POST /v1/audit`,
   `sentin8:sys:audit:write`); both retry independently of the request path.
-- **TLS posture** — TLS is terminated in-process by the `sentin8-tls`
+- **TLS posture** - TLS is terminated in-process by the `sentin8-tls`
   library (post-quantum X25519MLKEM768 key exchange, ML-DSA-65
   signatures); Sentin8:Proxy routes by SNI and injects the
   `X-Sentin8-*` context headers, which the service reads after stripping
   any client-supplied copies.
-- **Registration** — `registration::print` emits service_type
+- **Registration** - `registration::print` emits service_type
   `exchange8:gateway`, subdomain `exchange8-gateway`, health path
   `/v1/health`, the `scope-mirror` Shield policy set (origin platform,
   mode enforced), PG role `exchange8_gateway_service` (db `exchange8`, no
@@ -219,7 +219,7 @@ Components:
   admin UI pages (`sessions`, `messages`) and the seven M2M grant entries
   (service, policy pair, audit, cron, tls).
 
-Request family 1 — FIX logon:
+Request family 1 - FIX logon:
 
 ```mermaid
 sequenceDiagram
@@ -245,7 +245,7 @@ sequenceDiagram
     end
 ```
 
-Request family 2 — new order submission (FIX path, shape stage):
+Request family 2 - new order submission (FIX path, shape stage):
 
 ```mermaid
 sequenceDiagram
@@ -274,7 +274,7 @@ sequenceDiagram
     end
 ```
 
-Request family 3 — execution-report path (downstream events → client):
+Request family 3 - execution-report path (downstream events → client):
 the gateway is the recipient of ME lifecycle events; each event is
 converted by `exec_report.rs` into the FIX field selection, the session
 stamps the outbound sequence (`prepare_app_message`), the frame is
@@ -304,7 +304,7 @@ sequenceDiagram
     end
 ```
 
-Request family 4 — REST order via Sentin8:BFF:
+Request family 4 - REST order via Sentin8:BFF:
 
 ```mermaid
 sequenceDiagram
@@ -413,17 +413,17 @@ Per-table notes:
 |---|---|---|
 | `gateway.connection` | env-scoped RLS; select/insert/update/delete policies | `client_comp_id` globally unique; supports FIX/OUCH/WS/REST protocol values; `risk_bypass` and `cancel_on_disconnect` are connection-level flags honored by the pipeline |
 | `gateway.fix_session_state` | env-scoped RLS, `UNIQUE (env_id, connection_id)` | persisted in/out counters; `trace_enabled` diagnostic toggle; admin seq-reset writes both counters via `UPDATE ... RETURNING` |
-| `gateway.fix_message` | env-scoped RLS, `UNIQUE (connection_id, seq_no)` | the resend window — outbound application frames as BYTEA with 1-char msg_type; retention-purged (purge window is the resend limit) |
+| `gateway.fix_message` | env-scoped RLS, `UNIQUE (connection_id, seq_no)` | the resend window - outbound application frames as BYTEA with 1-char msg_type; retention-purged (purge window is the resend limit) |
 | `gateway.outbox` | env-scoped RLS (select/insert/update) | generated `sentin8_outbox::outbox_table_sql("gateway")`; partial index on unrelayed rows; `gateway.gateway_notify_outbox()` fires `pg_notify('gateway_outbox_changed')` after insert |
 | `gateway.audit_journal` | env-scoped RLS (single combined policy) | generated `sentin8_audit::audit_journal_sql("gateway")`; partial index on unpushed rows; pushed by the shell M2M audit workload |
 
 Secret-reference-only rule: no FIX logon key, access token, or private
-key material is ever stored in any of these tables — credentials are
+key material is ever stored in any of these tables - credentials are
 Sentin8-issued session keys referenced as `secret://exchange8/fix/{comp}`
 and resolved out-of-band at session start; `msg_body` carries wire frames
 only, never secrets.
 
-FIX session lifecycle — the `SessionState` machine persisted per
+FIX session lifecycle - the `SessionState` machine persisted per
 connection:
 
 ```mermaid
@@ -451,11 +451,11 @@ on the same transaction (awaited `set_tenant_context`) → explicit
 `enforced`; tenant sets and `sentin8:sys:*` admin scopes participate in
 the same decision.
 
-### FIX session surface (order entry — protocol ports)
+### FIX session surface (order entry - protocol ports)
 
 | Surface | Direction | Gate / credentials | Notes |
 |---|---|---|---|
-| FIX 4.2 logon | over TLS | `SessionKeyRegistry.verify` — UnknownCompId/BadKey → reject (`exchange8_logon_rejected`) | HeartBtInt clamped 10–120; `ResetSeqNumFlag 141=Y` restarts counters |
+| FIX 4.2 logon | over TLS | `SessionKeyRegistry.verify` - UnknownCompId/BadKey → reject (`exchange8_logon_rejected`) | HeartBtInt clamped 10-120; `ResetSeqNumFlag 141=Y` restarts counters |
 | FIX app messages | in-order stream | session established | NewOrderSingle / cancel / replace decoded to `ExchangeOrder`, then the submission pipeline |
 | FIX admin messages | in-order stream | session established | TestRequest→Heartbeat, ResendRequest served from store, SequenceReset-GapFill accepted forward |
 | OUCH enter/replace/cancel | over TLS | same session keys, `protocol='OUCH'` | codec → normalized order → same pipeline |
@@ -485,7 +485,7 @@ and the registered RFW pages `sessions` / `messages`
 (data endpoints above; the RFW renderer is POST-only, so update-style
 actions are POST routes).
 
-Multi-party flow — client → gateway → ME → gateway → client execution
+Multi-party flow - client → gateway → ME → gateway → client execution
 report:
 
 ```mermaid
@@ -514,7 +514,7 @@ sequenceDiagram
     end
 ```
 
-Event flow — outbox → Bus → trigger chain:
+Event flow - outbox → Bus → trigger chain:
 
 ```mermaid
 sequenceDiagram
@@ -539,7 +539,7 @@ sequenceDiagram
     TRG-->>TRG: idempotent reaction on event payload
 ```
 
-Outbound event vocabulary (`events.rs`; stream family `gateway` — the Bus
+Outbound event vocabulary (`events.rs`; stream family `gateway` - the Bus
 key is `bus:{env_id}:gateway`; names follow
 `exchange8:{service}:{resource}:{operation}`):
 
@@ -553,7 +553,7 @@ key is `bus:{env_id}:gateway`; names follow
 | `exchange8:me:order:cancel-all` | Cancel-on-disconnect dispatch on session drop | `connection_id` (consumed by Exchange8:ME's direct-stream subscriber) |
 
 Every envelope carries the identity block (`env_id`, `subject_id`,
-`correlation_id`, `idempotency_key`) — payload-complete per the §6.7
+`correlation_id`, `idempotency_key`) - payload-complete per the §6.7
 completeness rule; lifecycle emissions write in a dedicated transaction,
 order emissions ride the submission path. The retention purge fire journals
 an audit `Execute` row and the admin surface mutations journal `Update` rows
@@ -562,12 +562,12 @@ an audit `Execute` row and the admin surface mutations journal `Update` rows
 ## 5. Cross-Cutting Concerns
 
 **Authentication.** HTTP requests verify the Sentin8:Auth bearer token
-(8-step pipeline, steps 1–3 in the shell) — there is no per-handler JWT
+(8-step pipeline, steps 1-3 in the shell) - there is no per-handler JWT
 scope *check*; the scope claim is a pre-filter + RLS feed and Shield is
 the decision. FIX logon is verified out-of-band: `Username (553)` /
 `Password (554)` carry a *session key reference*, verified by a
 length-safe constant-time comparison against `secret://exchange8/fix/{comp}`
-material resolved from the secret store — a stolen credential reference
+material resolved from the secret store - a stolen credential reference
 without the key is useless, and the decision discloses nothing beyond
 reject.
 
@@ -587,13 +587,13 @@ counter stamping make duplicate session frames structurally impossible.
 **Rate limiting / bot protection.** Session protocol guards bound bad
 actors at the connection layer: logon required before anything else,
 pre-logon traffic disconnects, low-seq teardown, heartbeat read-timeout
-drain (interval clamped 10–120 s). FIX/OUCH clients are certified per
+drain (interval clamped 10-120 s). FIX/OUCH clients are certified per
 connection (`certification_status`).
 
 **Audit journaling.** Domain mutations write `gateway.audit_journal` rows
 in the same transaction where possible; the shell pusher forwards them to
 Sys `POST /v1/audit` with the `sentin8:sys:audit:write` M2M scope
-(workload `gateway-audit`); a Sys outage never drops audit — rows stay
+(workload `gateway-audit`); a Sys outage never drops audit - rows stay
 until pushed (`pushed` partial index).
 
 **Graceful drain.** The shell drains on upgrade (Sentin8:Captain
@@ -652,10 +652,10 @@ Failure catalog and recovery paths:
   (`SENTIN8_PG_POOL_MAX` override, default cap 3) so a burst of sessions
   cannot exhaust PostgreSQL; handlers queue on the capped pool and the
   busy path fails with a mapped DB error rather than hanging.
-- **Zero-tenant context.** RLS yields zero rows and rejects inserts —
+- **Zero-tenant context.** RLS yields zero rows and rejects inserts -
   fail-closed with no fallback context.
 
-Recovery sequence — gateway restart with live sessions:
+Recovery sequence - gateway restart with live sessions:
 
 ```mermaid
 sequenceDiagram
@@ -681,7 +681,7 @@ sequenceDiagram
 
 ## 7. Concurrency & Performance Model
 
-Task/Channel topology — the binary-level allocator covers all workers:
+Task/Channel topology - the binary-level allocator covers all workers:
 
 ```mermaid
 graph LR
@@ -704,7 +704,7 @@ graph LR
   sessions or instances); HTTP handlers are per-request tasks on the axum
   runtime; the relay and audit pusher are long-lived single tasks
   batching the `relayed = false` / `pushed = false` partial-index slices.
-- **Locking strategy.** No cross-task locks on protocol state — per
+- **Locking strategy.** No cross-task locks on protocol state - per
   session, message processing is sequential by construction (the state
   machine requires in-order consumption); shared resources (pool, Shield
   engine cache) use the shell's existing concurrency primitives.
@@ -731,7 +731,7 @@ Invariants (always true):
 2. Outbound application messages carry monotonically increasing sequence
    numbers; resend traffic never advances the counter and never rewrites
    sequence numbers.
-3. One stored frame per `(connection_id, seq_no)` — enforced by a UNIQUE
+3. One stored frame per `(connection_id, seq_no)` - enforced by a UNIQUE
    constraint.
 4. `PossDup` below the expected counter drops; low sequence without
    `PossDup` disconnects; a gap queues + ResendRequests.
@@ -742,7 +742,7 @@ Invariants (always true):
    Shield, no request without a resolvable tenant.
 7. FIX logon keys never persist in gateway tables; verification is
    constant-time and opaque between UnknownCompId and BadKey.
-8. `client_comp_id` is globally unique — one connection row per CompID;
+8. `client_comp_id` is globally unique - one connection row per CompID;
    `fix_session_state` unique per `(env_id, connection_id)`.
 9. Cancel-on-disconnect is a full set replacement of the connection's live
    orders, derived from a per-connection registry that only tracks
@@ -758,7 +758,7 @@ sequence images; accepting any BeginString without negotiation; WebSocket
 for metrics/event push (single-direction tiers use SSE on the subscribed
 streams; `/ws` is the only bidirectional tier).
 
-Unsafe rationale: none — the unit contains no `unsafe` blocks; the
+Unsafe rationale: none - the unit contains no `unsafe` blocks; the
 constant-time comparison is a safe byte-fold.
 
 ## 9. Testing Strategy
@@ -775,20 +775,20 @@ graph TD
 
 Layer ownership:
 
-- **Unit** — pure modules carry their own tests: logon/reset/heartbeat
+- **Unit** - pure modules carry their own tests: logon/reset/heartbeat
   clamping, gap queue + ResendRequest emission, low-seq teardown,
   `PossDup` handling, resend serving with GapFill spans, order routing
   and rejection reasons, order-id lease/exhaustion/refill,
   cancel-on-disconnect sets, on-behalf-of attribution, FIX version
   negotiation, OUCH encode/decode round trips, exec-report conversions,
   constant-time equality, REST/crypto validation.
-- **Handler (DB-free)** — `handlers_oneshot.rs` drives the real router:
+- **Handler (DB-free)** - `handlers_oneshot.rs` drives the real router:
   401-before-DB guarantee (bearer-less requests never reach the pool),
   405/404 route shape, plain-text auth error envelope; `handlers.rs`
   carries the scope matrix asserting exact-permit / sibling-deny /
   platform-admin-allow semantics against the same `require_any_scope`
   decision the handlers delegate to.
-- **Policy wiring** — `policy.rs` runs the **real** seeded
+- **Policy wiring** - `policy.rs` runs the **real** seeded
   `registration::SCOPE_MIRROR_POLICIES` string (the exact text
   `vertical enroll` upserts, single source
   `SCOPE_MIRROR_POLICIES`) through `PolicyEngine::load_from_rows`:
@@ -796,13 +796,13 @@ Layer ownership:
   reported), mirror permits its own grants, M2M parity (`token_tp` never
   bypasses), platform-admin scopes pass, forbid-beats-permit, role-keyed
   tenant sets decide.
-- **SQL/RLS integration** — `sql_matrix.rs` runs the behavioral matrix on
+- **SQL/RLS integration** - `sql_matrix.rs` runs the behavioral matrix on
   the live schema via the probe role: every declared `init.sql` table
   FORCEs RLS with a select policy; zero rows without context; insert
   without context rejected (savepoint-guarded); own-env probe row visible
-  exactly once; cross-env invisible. One rolled-back transaction — zero
+  exactly once; cross-env invisible. One rolled-back transaction - zero
   residue; skips silently offline.
-- **Deliberately not tested here** — shell boot sequencing, Auth/Bus/Sys
+- **Deliberately not tested here** - shell boot sequencing, Auth/Bus/Sys
   client behavior, platform RLS helper internals, and cross-service
   orchestration are platform-shell and platform-design test subjects.
 
@@ -812,9 +812,9 @@ Layer ownership:
   risk stage is the documented hook (`submission.rs`; Exchange8:Risk design §7
   `POST /v1/authorize` with the plain `ExchangeOrder`, sync, <5 ms budget,
   fail-closed `RiskUnavailable`), but Exchange8:Risk's router does not mount the
-  endpoint yet (`services/risk/src/main.rs` — the handler wiring rides the
+  endpoint yet (`services/risk/src/main.rs` - the handler wiring rides the
   auth-middleware pass). When Risk mounts it, the gateway call uses the
-  service's own cert-bound M2M workload — no invented interim path.
+  service's own cert-bound M2M workload - no invented interim path.
 - **Cancel/replace/status submission depth.** The wired intake surface is
   `NewOrderSingle` (the routed/rejected vocabulary); Cancel/Replace/Status
   requests decode in the session engine but their follow-up pipeline stages
