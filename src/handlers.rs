@@ -12,8 +12,8 @@
 //! Design: `design/sentin8-exchange8-gateway-technical-design.md` §4.1
 //! + data-model doc §3.2 (GW-owned `gateway.connection`).
 
-use utoipa::ToSchema;
 use std::sync::Arc;
+use utoipa::ToSchema;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
