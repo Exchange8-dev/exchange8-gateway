@@ -129,7 +129,7 @@ impl FixSession {
             .unwrap_or(0);
         let poss_dup = msg.get(tg::POSS_DUP) == Some("Y");
 
-        // --- session-state gating -------------------------------------------
+        // --- session-state gating ----------------------------------------
         match self.state {
             SessionState::AwaitingLogon => {
                 if mtype != mt::LOGON {
@@ -148,7 +148,7 @@ impl FixSession {
             SessionState::Established => {}
         }
 
-        // --- sequence handling ------------------------------------------------
+        // --- sequence handling ---------------------------------------------
         if poss_dup && seq < self.in_seq {
             // Already-processed re-delivery: drop silently (platform spec).
             return (actions, deliver);

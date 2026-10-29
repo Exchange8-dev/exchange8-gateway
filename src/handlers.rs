@@ -263,14 +263,14 @@ pub async fn seq_reset(
         .ok_or((StatusCode::NOT_FOUND, "connection not found".into()))
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Admin/RFW surface (DESIGN.md §4 admin surface; registration declares the
 // pages `sessions` / `messages`). `GET /v1/admin/ui/{page}` serves the RFW
 // page-definition JSON (Sentin8:Dash renders it - services never ship UI
 // code); the `/v1/admin/*` data endpoints alias the same RLS-scoped
 // handlers. Admin session stop rides the runtime session registry
 // (DESIGN.md §4.5 admin logout).
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 /// The RFW page definitions for this service's `admin_ui` pages - same
 /// definition shape the Dash renderer consumes (`admin_ui` module
@@ -521,7 +521,7 @@ pub struct ScheduleRunRequest {
     #[allow(dead_code)]
     pub idempotency_key: Option<String>,
 }
-/// Session-stop ack (OAPEC-9 typed body).
+/// Session-stop ack (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct SessionStopAck {
     /// The stopped session id.
@@ -627,11 +627,11 @@ pub async fn internal_schedules_run(
     }))
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Authorization matrix tests (design §13b.1; see DESIGN.md §9). DB-free: the
 // decision the handlers delegate to (`AuthContext::require_any_scope`) is
 // exercised against the SAME constants the handlers require.
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 #[cfg(test)]
 mod scope_matrix {

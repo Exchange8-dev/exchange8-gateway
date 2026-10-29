@@ -101,7 +101,7 @@ graph TD
         end
 
         subgraph Shell["Sentin8 Shell - shared"]
-            REG["registration.rs - --print-registration"]
+            REG["registration.rs --print-registration"]
             POOL["capped PgPool"]
             RELAY["outbox relay task"]
             AUD["audit journal pusher"]

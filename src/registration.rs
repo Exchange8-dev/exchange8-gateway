@@ -144,7 +144,7 @@ const ADMIN_UI_PAGES: &[AdminUiPage] = &[
 ///   `fix-message-purge` schedule with Sentin8:Cron; Cron's ticker
 ///   proxy-back authenticates the dedicated `gateway-cron` workload.
 /// - `exchange8-gateway-tls` - database-free HostContextResolver resolve workload
-///   (TLS-RLS-4: `GET /v1/resolve/hostname`, scope
+/// (`GET /v1/resolve/hostname`, scope
 ///   `sentin8:sys:instances:read`).
 const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
