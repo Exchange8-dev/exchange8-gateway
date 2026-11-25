@@ -6,7 +6,8 @@
       "telemetry_property": {
         "slug": "gateway",
         "name": "Exchange8:Gateway Telemetry"
-      }
+      },
+      "exposure": "internal"
     }
   ]
 }
